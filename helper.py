@@ -1,6 +1,33 @@
 import numpy as np
 import itertools as itr
-from collections import defaultdict
+import scipy.special as scsp
+
+
+def binomial_outdegree_multapses(M, K, N, m):
+    """probability to find a source with m outputs for choosing for M
+    neurons K sources from a pool of N neurons, with allowing a source
+    to be chosen more than once for a single target
+
+    """
+    return scsp.binom(M * K, m) * (1./N)**m * (1. - 1./N)**(M * K - m)
+
+
+def binomial_outdegree(M, K, N, m):
+    """probability to find a source with m outputs for choosing for M
+    neurons K sources from a pool of N neurons, without choosing a
+    source twice for a single target
+
+    """
+    return scsp.binom(M, m) * (1. * K/N)**m * (1. - 1. * K/N)**(M - m)
+
+
+def binomial_shared(K, N, s):
+    """distribution of choosing s shared inputs for choosing K sources of
+    a pool of N sources
+
+    """
+    return scsp.binom(K, s) * (1. * K / N)**s * (1. - 1. * K / N)**(K - s)
+
 
 def create_BM_weight_matrix_normal(N, muJ, sigmaJ):
     W = np.random.normal(muJ, sigmaJ, (N, N))
