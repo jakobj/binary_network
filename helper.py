@@ -154,7 +154,7 @@ def generate_template(M, K, Kshared, w):
     return template
 
 
-def create_noise_connectivity_matrix_fixed_pairwise(Nbm, Nnoise, gamma, g, w, epsilon):
+def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon):
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(epsilon * NE)
@@ -166,23 +166,23 @@ def create_noise_connectivity_matrix_fixed_pairwise(Nbm, Nnoise, gamma, g, w, ep
     if NI > 0:
         KIshared = int(1. * KI**2 / NI)
     # check whether it is possible to realize desired connectivity;
-    # this translate to (Nbm - 1 ) * epsilon <= 1
-    assert(KEshared * (Nbm - 1) <= KE), '[error] impossible parameter choices'
-    assert(KIshared * (Nbm - 1) <= KI), '[error] impossible parameter choices'
+    # this translate to (M - 1 ) * epsilon <= 1
+    assert(KEshared * (M - 1) <= KE), '[error] impossible parameter choices'
+    assert(KIshared * (M - 1) <= KI), '[error] impossible parameter choices'
     # the two next conditions are fullfilled if the two conditions
     # above are fullfilled; they are left in for documentation
-    assert(Nbm*(KE-KEshared) <= NE)
-    assert(Nbm*(KI-KIshared) <= NI)
-    W = np.zeros((Nbm, NE+NI))
+    assert(M*(KE-KEshared) <= NE)
+    assert(M*(KI-KIshared) <= NI)
+    W = np.zeros((M, NE+NI))
     for k in xrange(2):
         K = [KE, KI][k]
         Kshared = [KEshared, KIshared][k]
         wt = [w, -g*w][k]
         if K > 0:
-            offset_i = k*(KE-KEshared)*Nbm
-            for l in xrange(Nbm-1):
-                template = generate_template(Nbm-l, K-l*Kshared, Kshared, wt)
-                W[l:Nbm, offset_i:offset_i+K-l*Kshared] = template
+            offset_i = k*(KE-KEshared)*M
+            for l in xrange(M-1):
+                template = generate_template(M-l, K-l*Kshared, Kshared, wt)
+                W[l:M, offset_i:offset_i+K-l*Kshared] = template
                 offset_i += K-l*Kshared
     return W
 
