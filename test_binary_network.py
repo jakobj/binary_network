@@ -105,6 +105,25 @@ class NetworkTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected_mean, mean, places=2)
         self.assertAlmostEqual(expected_variance, variance, places=2)
 
+    def test_multiple_activation_functions(self):
+        N = 20
+        W = np.zeros((N,N))
+        N1 = 15
+        b = np.ones(N)*0.2
+        b[N1:] = 0.9
+        sinit = np.random.randint(0, 2, N)
+        Nrec = 20
+        steps = 5e4
+        def F1(x):
+            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
+        def F2(x):
+            return 0 if 1./(1+np.exp(-x+0.7)) < np.random.rand() else 1
+        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
+        a_means = np.mean(a_s, axis=0)
+        expected_means = np.ones(N)*1./(1.+np.exp(-b[0]))
+        nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
+
+
 
 if __name__ == '__main__':
     unittest.main()
