@@ -85,6 +85,7 @@ class HelperTestCase(unittest.TestCase):
         variance = hlp.get_variance(mu)
         self.assertAlmostEqual(expected_variance, variance)
 
+
 class NetworkTestCase(unittest.TestCase):
 
     def test_unconnected_mean_variance(self):
@@ -92,15 +93,17 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N,N))
         b = np.ones(N)*0.2
         sinit = np.random.randint(0, 2, N)
-        Nrec = 0
-        steps = 1e4
-        def F(x):
-            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_act = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F], calibrate=True)
+        Nrec = 20
+        steps = 5e4
         expected_mean = 1./(1.+np.exp(-b[0]))
         expected_variance = hlp.get_variance(expected_mean)
-        self.assertAlmostEqual(expected_mean, 1.*np.mean(a_act)/N, places=1)
-        self.assertAlmostEqual(expected_variance, 1.*np.var(a_act)/N, places=1)
+        def F(x):
+            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
+        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
+        mean = np.mean(a_s)
+        variance = np.var(a_s)
+        self.assertAlmostEqual(expected_mean, mean, places=2)
+        self.assertAlmostEqual(expected_variance, variance, places=2)
 
 
 if __name__ == '__main__':
