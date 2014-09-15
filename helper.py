@@ -3,8 +3,8 @@ import itertools as itr
 
 def create_BM_weight_matrix(N):
     W = 2.*(np.random.rand(N,N)-0.5)
-    for i in xrange(N):
-        for j in xrange(i):
+    for i in range(N):
+        for j in range(i):
             W[j, i] = W[i, j]
     W -= np.diag(W.diagonal())
     return W
