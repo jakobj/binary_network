@@ -53,3 +53,6 @@ def get_theo_joints(W, b):
     for state in states:
         p.append(np.exp(get_E(np.array(W), np.array(b), np.array(state))))
     return 1.*np.array(p)/np.sum(p)
+
+def get_variance(mu):
+    return mu*(1.-mu)

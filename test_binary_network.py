@@ -2,8 +2,8 @@ import unittest
 import numpy as np
 import numpy.testing as nptest
 
-# import boltzmann as bm
 import helper as hlp
+import binary_network as bnetwork
 
 class HelperTestCase(unittest.TestCase):
 
@@ -78,6 +78,29 @@ class HelperTestCase(unittest.TestCase):
         expected_states = np.array([[0,0], [0,1], [1,0], [1,1]])
         states = hlp.get_states(N)
         nptest.assert_array_equal(expected_states, states)
+
+    def test_get_variance(self):
+        mu = 0.2
+        expected_variance = mu*(1.-mu)
+        variance = hlp.get_variance(mu)
+        self.assertAlmostEqual(expected_variance, variance)
+
+class NetworkTestCase(unittest.TestCase):
+
+    def test_unconnected_mean_variance(self):
+        N = 20
+        W = np.zeros((N,N))
+        b = np.ones(N)*0.2
+        sinit = np.random.randint(0, 2, N)
+        Nrec = 0
+        steps = 1e4
+        def F(x):
+            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
+        a_act = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F], calibrate=True)
+        expected_mean = 1./(1.+np.exp(-b[0]))
+        expected_variance = hlp.get_variance(expected_mean)
+        self.assertAlmostEqual(expected_mean, 1.*np.mean(a_act)/N, places=1)
+        self.assertAlmostEqual(expected_variance, 1.*np.var(a_act)/N, places=1)
 
 
 if __name__ == '__main__':
