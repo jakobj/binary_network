@@ -3,7 +3,7 @@ import numpy as np
 import numpy.testing as nptest
 
 import helper as hlp
-import binary_network as bnetwork
+import network as bnet
 
 class HelperTestCase(unittest.TestCase):
 
@@ -120,7 +120,7 @@ class NetworkTestCase(unittest.TestCase):
         expected_variance = hlp.get_variance(expected_mean)
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
+        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
         mean = np.mean(a_s)
         variance = np.var(a_s)
         self.assertAlmostEqual(expected_mean, mean, places=1)
@@ -139,7 +139,7 @@ class NetworkTestCase(unittest.TestCase):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         def F2(x):
             return 0 if 1./(1+np.exp(-x+0.7)) < np.random.rand() else 1
-        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
+        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
         a_means = np.mean(a_s, axis=0)
         expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
         nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
@@ -153,7 +153,7 @@ class NetworkTestCase(unittest.TestCase):
         steps = 1e5
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
+        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
         joints = hlp.get_joints(a_s, 0)
         expected_joints = hlp.get_theo_joints(W,b)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
@@ -167,7 +167,7 @@ class NetworkTestCase(unittest.TestCase):
         steps = 2e5
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
+        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
         marginals = hlp.get_marginals(a_s, 0)
         expected_marginals = hlp.get_theo_marginals(W,b)
         nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
