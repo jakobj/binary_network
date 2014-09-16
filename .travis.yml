@@ -3,7 +3,9 @@ python:
   - "3.3"
   - "2.7"
   - "2.6"
-install: pip install numpy
+install:
+        pip install numpy
+        export PYTHONPATH=$PYTHONPATH:.
 script: python tests/test_binary_network.py
 branches:
   only:
