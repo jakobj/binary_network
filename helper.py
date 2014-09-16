@@ -57,6 +57,9 @@ def get_theo_joints(W, b):
 def get_variance(mu):
     return mu*(1.-mu)
 
+def get_std(mu):
+    return np.sqrt(get_variance(mu))
+
 def get_joints(a_s, steps_warmup):
     N = len(a_s[0])
     statetensor = np.zeros([2 for i in range(N)])
@@ -86,5 +89,8 @@ def sigma(x):
 def sigmainv(y):
     return np.log(1./(1./y - 1.))
 
-def testfunc(x):
-    return 1.*x/2
+def get_mun(K, gamma, g, w, smu):
+    return (gamma - (1.-gamma)*g)*K*w*smu
+
+def get_sigman(K, gamma, g, w, smu):
+    return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*get_variance(smu))

@@ -89,11 +89,14 @@ class HelperTestCase(unittest.TestCase):
         states = hlp.get_states(N)
         nptest.assert_array_equal(expected_states, states)
 
-    def test_get_variance(self):
+    def test_get_variance_get_std(self):
         mu = 0.2
         expected_variance = mu*(1.-mu)
+        expected_std = np.sqrt(expected_variance)
         variance = hlp.get_variance(mu)
         self.assertAlmostEqual(expected_variance, variance)
+        std = hlp.get_std(mu)
+        self.assertAlmostEqual(expected_std, std)
 
     def test_get_joints(self):
         N = 1e5
@@ -136,6 +139,25 @@ class HelperTestCase(unittest.TestCase):
         x = hlp.sigmainv(y)
         nptest.assert_array_almost_equal(expected_x, x)
 
+    def test_mun_sigman(self):
+        K = 20
+        gamma = 0.8
+        g = 4.
+        w = 0.2
+        smu = 0.2
+        steps = 1e5
+        KE = int(gamma*K)
+        KI = K-KE
+        sigmas = hlp.get_std(smu)
+        xE = w*np.random.normal(0, sigmas, (steps, KE))
+        xI = -g*w*np.random.normal(0, sigmas, (steps, KI))
+        x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
+        expected_mu = np.mean(x)
+        expected_std = np.std(x)
+        mu = hlp.get_mun(K, gamma, g, w, smu)
+        self.assertAlmostEqual(expected_mu, mu, places=2)
+        std = hlp.get_sigman(K, gamma, g, w, smu)
+        self.assertAlmostEqual(expected_std, std, places=2)
 
 class NetworkTestCase(unittest.TestCase):
 
