@@ -73,3 +73,15 @@ def get_marginals(a_s, steps_warmup):
 
 def get_DKL(p, q):
     return np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])
+
+def theta(x):
+    if np.any(abs(x)  < 1e-15):
+        raise ValueError('Invalid value in ecountered in theta(x).')
+    else:
+        return 1./2.*(np.sign(x)+1.)
+
+def sigma(x):
+    return 1./(1. + np.exp(-x))
+
+def sigmainv(y):
+    return np.log(1./(1./y - 1.))

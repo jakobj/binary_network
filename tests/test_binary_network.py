@@ -116,6 +116,26 @@ class HelperTestCase(unittest.TestCase):
         DKL = hlp.get_DKL(p, q)
         nptest.assert_array_almost_equal(expected_DKL, DKL)
 
+    def test_theta(self):
+        x = np.array([1., -.1, -1., .1])
+        expected_y = np.array([1., 0., 0., 1.])
+        y = hlp.theta(x)
+        nptest.assert_array_equal(expected_y, y)
+        x = np.array([1., 0., -1., .1])
+        self.assertRaises(ValueError, hlp.theta, x)
+
+    def test_sigmoidal(self):
+        x = np.random.rand(1e2)
+        expected_y = 1./(1. + np.exp(-x))
+        y = hlp.sigma(x)
+        nptest.assert_array_almost_equal(expected_y, y)
+
+    def test_sigmainv(self):
+        expected_x = np.random.rand(1e2)
+        y = hlp.sigma(expected_x)
+        x = hlp.sigmainv(y)
+        nptest.assert_array_almost_equal(expected_x, x)
+
 
 class NetworkTestCase(unittest.TestCase):
 
