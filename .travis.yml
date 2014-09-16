@@ -5,3 +5,6 @@ python:
   - "2.6"
 install: pip install numpy
 script: python tests/test_binary_network.py
+branches:
+  only:
+    - master
