@@ -87,7 +87,7 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_joints(self):
         N = 1e5
-        a_s = np.random.randint(0, 2, N).reshape(N/2, 2)
+        a_s = np.random.randint(0, 2, N).reshape(int(N/2), 2)
         expected_joints = [0.25, 0.25, 0.25, 0.25]
         joints = hlp.get_joints(a_s, 0)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
@@ -96,12 +96,12 @@ class HelperTestCase(unittest.TestCase):
 class NetworkTestCase(unittest.TestCase):
 
     def test_unconnected_mean_variance(self):
-        N = 20
+        N = 100
         W = np.zeros((N,N))
         b = np.ones(N)*0.2
         sinit = np.random.randint(0, 2, N)
         Nrec = 20
-        steps = 5e4
+        steps = 2e5
         expected_mean = 1./(1.+np.exp(-b[0]))
         expected_variance = hlp.get_variance(expected_mean)
         def F(x):
@@ -109,25 +109,25 @@ class NetworkTestCase(unittest.TestCase):
         a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
         mean = np.mean(a_s)
         variance = np.var(a_s)
-        self.assertAlmostEqual(expected_mean, mean, places=2)
-        self.assertAlmostEqual(expected_variance, variance, places=2)
+        self.assertAlmostEqual(expected_mean, mean, places=1)
+        self.assertAlmostEqual(expected_variance, variance, places=1)
 
     def test_multiple_activation_functions(self):
-        N = 20
+        N = 100
         W = np.zeros((N,N))
         N1 = 15
         b = np.ones(N)*0.2
         b[N1:] = 0.9
         sinit = np.random.randint(0, 2, N)
         Nrec = 20
-        steps = 5e4
+        steps = 2e5
         def F1(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         def F2(x):
             return 0 if 1./(1+np.exp(-x+0.7)) < np.random.rand() else 1
         a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
         a_means = np.mean(a_s, axis=0)
-        expected_means = np.ones(N)*1./(1.+np.exp(-b[0]))
+        expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
         nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
 
 
