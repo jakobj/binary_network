@@ -177,6 +177,15 @@ class HelperTestCase(unittest.TestCase):
         std = np.std(x)
         self.assertAlmostEqual(expected_std, std, places=2)
 
+    def test_Fsigma(self):
+        samples = 5e4
+        x = np.random.rand(samples)
+        expected_y = 1./(1.+ np.exp(-0.5))
+        y = []
+        for xi in x:
+            y.append(hlp.Fsigma(xi))
+        y = np.mean(y)
+        nptest.assert_array_almost_equal(expected_y, y, decimal=2)
 
 
 class NetworkTestCase(unittest.TestCase):

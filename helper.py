@@ -97,3 +97,6 @@ def get_sigman(K, gamma, g, w, sigma):
 
 def get_weight_noise(beta, sigma, K, gamma, g):
     return np.sqrt(8./(np.pi*beta**2*sigma**2*K*(gamma + (1.-gamma)*g**2)))
+
+def Fsigma(x):
+    return 0 if sigma(x) < np.random.rand() else 1
