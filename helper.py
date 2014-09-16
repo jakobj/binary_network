@@ -70,3 +70,6 @@ def get_marginals(a_s, steps_warmup):
     for i in range(N):
         p[i] = np.mean(a_s[:,i])
     return p
+
+def get_DKL(p, q):
+    return np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])

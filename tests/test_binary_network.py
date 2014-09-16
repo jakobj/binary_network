@@ -99,6 +99,13 @@ class HelperTestCase(unittest.TestCase):
         marginals = hlp.get_marginals(a_s, 0)
         nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
 
+    def test_DKL(self):
+        p = np.array([0.1, 0.3, 0.2, 0.4])
+        q = np.array([0.2, 0.3, 0.1, 0.4])
+        expected_DKL = np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])
+        DKL = hlp.get_DKL(p, q)
+        nptest.assert_array_almost_equal(expected_DKL, DKL)
+
 
 class NetworkTestCase(unittest.TestCase):
 
