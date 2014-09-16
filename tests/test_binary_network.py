@@ -92,6 +92,13 @@ class HelperTestCase(unittest.TestCase):
         joints = hlp.get_joints(a_s, 0)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
 
+    def test_get_marginals(self):
+        N = 1e5
+        a_s = np.random.randint(0, 2, N).reshape(int(N/2), 2)
+        expected_marginals = [0.5, 0.5]
+        marginals = hlp.get_marginals(a_s, 0)
+        nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
+
 
 class NetworkTestCase(unittest.TestCase):
 
@@ -130,6 +137,19 @@ class NetworkTestCase(unittest.TestCase):
         expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
         nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
 
+    def test_joint_distribution(self):
+        N = 2
+        W = np.array([[0., 0.5], [0.5, 0.]])
+        b = np.array([0., 0.6])
+        sinit = np.random.randint(0, 2, N)
+        Nrec = 2
+        steps = 1e5
+        def F(x):
+            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
+        a_states, a_s = bnetwork.simulate(W, b, sinit, steps, Nrec, [N], [F])
+        joints = hlp.get_joints(a_s, 0)
+        expected_joints = hlp.get_theo_joints(W,b)
+        nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
 
 
 if __name__ == '__main__':

@@ -64,3 +64,9 @@ def get_joints(a_s, steps_warmup):
         statetensor[tuple(s)] += 1
     return 1.*statetensor.flatten()/len(a_s[steps_warmup:])
 
+def get_marginals(a_s, steps_warmup):
+    N = len(a_s[0])
+    p = np.empty(N)
+    for i in range(N):
+        p[i] = np.mean(a_s[:,i])
+    return p
