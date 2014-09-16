@@ -156,7 +156,7 @@ class HelperTestCase(unittest.TestCase):
         expected_std = np.std(x)
         mu = hlp.get_mun(K, gamma, g, w, smu)
         self.assertAlmostEqual(expected_mu, mu, places=2)
-        std = hlp.get_sigman(K, gamma, g, w, smu)
+        std = hlp.get_sigman(K, gamma, g, w, sigmas)
         self.assertAlmostEqual(expected_std, std, places=2)
 
 class NetworkTestCase(unittest.TestCase):

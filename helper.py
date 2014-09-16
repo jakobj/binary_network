@@ -92,5 +92,5 @@ def sigmainv(y):
 def get_mun(K, gamma, g, w, smu):
     return (gamma - (1.-gamma)*g)*K*w*smu
 
-def get_sigman(K, gamma, g, w, smu):
-    return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*get_variance(smu))
+def get_sigman(K, gamma, g, w, sigma):
+    return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*sigma**2)
