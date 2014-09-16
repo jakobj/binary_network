@@ -59,7 +59,7 @@ def get_variance(mu):
 
 def get_joints(a_s, steps_warmup):
     N = len(a_s[0])
-    statetensor = np.zeros([2 for i in xrange(N)])
+    statetensor = np.zeros([2 for i in range(N)])
     for s in a_s[steps_warmup:]:
         statetensor[tuple(s)] += 1
     return 1.*statetensor.flatten()/len(a_s[steps_warmup:])

@@ -4,7 +4,7 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, calibrate=False):
     N = len(b)
     s = sinit
     step = 1
-    a_s = np.empty((steps, Nrec))
+    a_s = np.empty((int(steps), Nrec))
     a_s[0] = s[:Nrec]
     while step < steps:
         idx = np.random.randint(0, N)
