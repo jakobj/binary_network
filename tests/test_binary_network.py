@@ -159,6 +159,26 @@ class HelperTestCase(unittest.TestCase):
         std = hlp.get_sigman(K, gamma, g, w, sigmas)
         self.assertAlmostEqual(expected_std, std, places=2)
 
+    def test_weight_noise(self):
+        K = 20
+        gamma = 0.5
+        g = 4
+        smu = 0.2
+        beta = .7
+        steps = 1e5
+        sigmas = hlp.get_std(smu)
+        expected_std = np.sqrt(8./(np.pi*beta**2))
+        w = hlp.get_weight_noise(beta, sigmas, K, gamma, g)
+        KE = int(gamma*K)
+        KI = K-KE
+        xE = w*np.random.normal(0, sigmas, (steps, KE))
+        xI = -g*w*np.random.normal(0, sigmas, (steps, KI))
+        x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
+        std = np.std(x)
+        self.assertAlmostEqual(expected_std, std, places=2)
+
+
+
 class NetworkTestCase(unittest.TestCase):
 
     def test_unconnected_mean_variance(self):
