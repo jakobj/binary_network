@@ -1,6 +1,6 @@
 import numpy as np
 
-def simulate(W, b, sinit, steps, Nrec, l_N, l_F, calibrate=False):
+def simulate(W, b, sinit, steps, Nrec, l_N, l_F):
     N = len(b)
     s = sinit
     step = 1
