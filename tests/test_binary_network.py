@@ -99,14 +99,14 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected_std, std)
 
     def test_get_joints(self):
-        N = 1e5
+        N = int(1e5)
         a_s = np.random.randint(0, 2, N).reshape(int(N/2), 2)
         expected_joints = [0.25, 0.25, 0.25, 0.25]
         joints = hlp.get_joints(a_s, 0)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
 
     def test_get_marginals(self):
-        N = 1e5
+        N = int(1e5)
         a_s = np.random.randint(0, 2, N).reshape(int(N/2), 2)
         expected_marginals = [0.5, 0.5]
         marginals = hlp.get_marginals(a_s, 0)
@@ -128,13 +128,13 @@ class HelperTestCase(unittest.TestCase):
         self.assertRaises(ValueError, hlp.theta, x)
 
     def test_sigmoidal(self):
-        x = np.random.rand(1e2)
+        x = np.random.rand(int(1e2))
         expected_y = 1./(1. + np.exp(-x))
         y = hlp.sigma(x)
         nptest.assert_array_almost_equal(expected_y, y)
 
     def test_sigmainv(self):
-        expected_x = np.random.rand(1e2)
+        expected_x = np.random.rand(int(1e2))
         y = hlp.sigma(expected_x)
         x = hlp.sigmainv(y)
         nptest.assert_array_almost_equal(expected_x, x)
@@ -145,7 +145,7 @@ class HelperTestCase(unittest.TestCase):
         g = 4.
         w = 0.2
         smu = 0.2
-        steps = 1e5
+        steps = int(1e5)
         KE = int(gamma*K)
         KI = K-KE
         sigmas = hlp.get_std(smu)
@@ -160,12 +160,12 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected_std, std, places=2)
 
     def test_weight_noise(self):
-        K = 20
-        gamma = 0.5
-        g = 4
-        smu = 0.2
+        K = 50
+        gamma = 0.8
+        g = 6
+        smu = 0.4
         beta = .7
-        steps = 1e5
+        steps = int(2e5)
         sigmas = hlp.get_std(smu)
         expected_std = np.sqrt(8./(np.pi*beta**2))
         w = hlp.get_weight_noise(beta, sigmas, K, gamma, g)
@@ -178,7 +178,7 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected_std, std, places=2)
 
     def test_Fsigma(self):
-        samples = 5e4
+        samples = int(5e4)
         x = np.random.rand(samples)
         expected_y = 1./(1.+ np.exp(-0.5))
         y = []
