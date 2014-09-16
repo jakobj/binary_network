@@ -85,6 +85,13 @@ class HelperTestCase(unittest.TestCase):
         variance = hlp.get_variance(mu)
         self.assertAlmostEqual(expected_variance, variance)
 
+    def test_get_joints(self):
+        N = 1e5
+        a_s = np.random.randint(0, 2, N).reshape(N/2, 2)
+        expected_joints = [0.25, 0.25, 0.25, 0.25]
+        joints = hlp.get_joints(a_s, 0)
+        nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+
 
 class NetworkTestCase(unittest.TestCase):
 
