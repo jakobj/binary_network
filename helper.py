@@ -85,3 +85,6 @@ def sigma(x):
 
 def sigmainv(y):
     return np.log(1./(1./y - 1.))
+
+def testfunc(x):
+    return 1.*x/2

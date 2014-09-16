@@ -3,10 +3,16 @@ python:
   - "3.3"
   - "2.7"
   - "2.6"
-install:
-  - pip install numpy
-  - export PYTHONPATH=$PYTHONPATH:.
-script: python tests/test_binary_network.py
 branches:
   only:
     - master
+install:
+  - pip install numpy
+  - pip install python-coveralls
+  - pip install nose
+  - pip install coverage
+  - export PYTHONPATH=$PYTHONPATH:.
+script:
+  - nosetests --with-coverage
+after_success:
+  - coveralls
