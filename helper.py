@@ -10,7 +10,7 @@ def create_BM_weight_matrix(N):
     return W
 
 def create_BM_biases(N):
-    return 2.*(np.random.rand()-.5)
+    return 2.*(np.random.rand(N)-.5)
 
 def create_connectivity_matrix(N, w, g, epsilon, gamma):
     W = np.zeros((N, N))

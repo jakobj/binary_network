@@ -14,8 +14,18 @@ class HelperTestCase(unittest.TestCase):
         N = 10
         expected_diag = np.zeros(N)
         W = hlp.create_BM_weight_matrix(N)
+        self.assertEqual((N,N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W-W.T))
+
+    def test_BM_biases(self):
+        N = 10
+        b = hlp.create_BM_biases(N)
+        self.assertEqual(N, len(b))
+        expected_max = np.ones(N)
+        expected_min = np.ones(N)*(-1.)
+        nptest.assert_array_less(expected_min, b)
+        nptest.assert_array_less(b, expected_max)
 
     def test_random_weight_matrix(self):
         N = 100
