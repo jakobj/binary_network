@@ -195,17 +195,22 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N,N))
         b = np.ones(N)*0.2
         sinit = np.random.randint(0, 2, N)
+        tau = 10.
         Nrec = 20
         steps = 2e5
         expected_mean = 1./(1.+np.exp(-b[0]))
         expected_variance = hlp.get_variance(expected_mean)
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
-        mean = np.mean(a_s)
-        variance = np.var(a_s)
-        self.assertAlmostEqual(expected_mean, mean, places=1)
-        self.assertAlmostEqual(expected_variance, variance, places=1)
+        for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
+            if i == 0:
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+            else:
+                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+            mean = np.mean(a_s)
+            variance = np.var(a_s)
+            self.assertAlmostEqual(expected_mean, mean, places=1)
+            self.assertAlmostEqual(expected_variance, variance, places=1)
 
     def test_multiple_activation_functions(self):
         N = 100
@@ -214,44 +219,59 @@ class NetworkTestCase(unittest.TestCase):
         b = np.ones(N)*0.2
         b[N1:] = 0.9
         sinit = np.random.randint(0, 2, N)
+        tau = 10.
         Nrec = 20
         steps = 2e5
         def F1(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         def F2(x):
             return 0 if 1./(1+np.exp(-x+0.7)) < np.random.rand() else 1
-        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
-        a_means = np.mean(a_s, axis=0)
-        expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
-        nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
+        for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
+            if i == 0:
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
+            else:
+                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N1,N], [F1,F2])
+            a_means = np.mean(a_s, axis=0)
+            expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
+            nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
 
     def test_joint_distribution(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
         sinit = np.random.randint(0, 2, N)
+        tau = 10.
         Nrec = 2
         steps = 1e5
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
-        joints = hlp.get_joints(a_s, 0)
-        expected_joints = hlp.get_theo_joints(W,b)
-        nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
+        for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
+            if i == 0:
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+            else:
+                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+            joints = hlp.get_joints(a_s, 0)
+            expected_joints = hlp.get_theo_joints(W,b)
+            nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
 
     def test_marginal_distribution(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
         sinit = np.random.randint(0, 2, N)
+        tau = 10.
         Nrec = 2
         steps = 2e5
         def F(x):
             return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        a_states, a_s = bnet.simulate(W, b, sinit, steps, Nrec, [N], [F])
-        marginals = hlp.get_marginals(a_s, 0)
-        expected_marginals = hlp.get_theo_marginals(W,b)
-        nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
+        for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
+            if i == 0:
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+            else:
+                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+            marginals = hlp.get_marginals(a_s, 0)
+            expected_marginals = hlp.get_theo_marginals(W,b)
+            nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
 
 
 if __name__ == '__main__':
