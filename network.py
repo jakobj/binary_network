@@ -28,8 +28,9 @@ def simulate_eve(W, b, tau, sinit, steps, Nrec, l_N, l_F):
     step = 1
     a_s = np.empty((int(steps), Nrec))
     a_s[0] = s[:Nrec]
-    l_steps = []
-    updates = zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N)))
+    a_steps = np.empty(int(steps))
+    a_steps[0] = 0.
+    updates = list(zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N))))
     hq.heapify(updates)
     while step < steps:
         time, idx = hq.heappop(updates)
@@ -42,7 +43,7 @@ def simulate_eve(W, b, tau, sinit, steps, Nrec, l_N, l_F):
         ui = np.dot(W[idx,:], s) + b[idx]
         s[idx] = l_F[idF](ui)
         a_s[step] = s[:Nrec]
-        l_steps.append(time)
+        a_steps[step] = time
         hq.heappush(updates, (time+np.random.exponential(tau), idx))
         step += 1
-    return np.array(l_steps), a_s
+    return a_steps, a_s
