@@ -31,6 +31,19 @@ def create_connectivity_matrix(N, w, g, epsilon, gamma):
             W[i, indI] = -g*w
     return W
 
+def create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon):
+    W = np.zeros((N, Nnoise))
+    NE = int(gamma*Nnoise)
+    NI = Nnoise-NE
+    KE = int(epsilon*NE)
+    KI = int(epsilon*NI)
+    for l in range(N):
+        indE = np.random.permutation(np.arange(0, NE))[:KE]
+        W[l, indE] = w
+        indI = np.random.permutation(np.arange(NE, Nnoise))[:KI]
+        W[l, indI] = -g*w
+    return W
+
 def get_E(W, b, s):
     return np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
 

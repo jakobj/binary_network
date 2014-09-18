@@ -45,6 +45,23 @@ class HelperTestCase(unittest.TestCase):
             self.assertAlmostEqual(np.sum(l[l < 0]), -1.*epsilon*NI*w*g)
             self.assertAlmostEqual(1.*len(l[l > 0])/len(l[l < 0]), gamma/(1.-gamma))
 
+    def test_noise_weight_matrix(self):
+        Nnoise = 100
+        N = 3
+        w = 0.2
+        g = 6
+        epsilon = 0.2
+        gamma = 0.8
+        W = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+        NEnoise = int(gamma*Nnoise)
+        NInoise = Nnoise-NEnoise
+        for l in W:
+            self.assertEqual(len(l[l > 0]), epsilon*NEnoise)
+            self.assertAlmostEqual(np.sum(l[l > 0]), epsilon*NEnoise*w)
+            self.assertEqual(len(l[l < 0]), epsilon*NInoise)
+            self.assertAlmostEqual(np.sum(l[l < 0]), -1.*epsilon*NInoise*w*g)
+            self.assertAlmostEqual(1.*len(l[l > 0])/len(l[l < 0]), gamma/(1.-gamma))
+
     def test_get_E(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
