@@ -192,7 +192,7 @@ class HelperTestCase(unittest.TestCase):
         xI = -g*w*np.random.normal(0, sigmas, (steps, KI))
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         std = np.std(x)
-        self.assertAlmostEqual(expected_std, std, places=2)
+        self.assertAlmostEqual(expected_std, std, places=1)
 
     def test_Fsigma(self):
         samples = int(5e4)
