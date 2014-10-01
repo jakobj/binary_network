@@ -290,6 +290,21 @@ class NetworkTestCase(unittest.TestCase):
             expected_marginals = hlp.get_theo_marginals(W,b)
             nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
 
+    def test_bin_binary_data(self):
+        N = 2
+        tbin = 0.08
+        times = np.array([0., 0.1, 0.35, 0.8, 0.95, 1.68])
+        a_s = np.array([[0,0], [1,0], [1,1], [1,0], [0,0], [1,0]])
+        expected_times = np.arange(0., np.max(times)+tbin, tbin)
+        expected_bin = np.empty((N,len(expected_times)))
+        for i,t in enumerate(expected_times):
+            idl = np.where(times <= t)[0]
+            expected_bin[0][i] = a_s[idl[-1],0]
+            expected_bin[1][i] = a_s[idl[-1],1]
+        times_bin, st = hlp.bin_binary_data(times, a_s, tbin)
+        nptest.assert_array_equal(expected_times, times_bin)
+        nptest.assert_array_equal(expected_bin, st)
+
 
 if __name__ == '__main__':
     unittest.main()

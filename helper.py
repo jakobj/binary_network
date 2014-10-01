@@ -113,3 +113,18 @@ def get_weight_noise(beta, sigma, K, gamma, g):
 
 def Fsigma(x):
     return 0 if sigma(x) < np.random.rand() else 1
+
+def bin_binary_data(times, a_states, tbin):
+    a_s = a_states.T.copy()
+    times_bin = np.arange(0., np.max(times)+tbin, tbin)
+    T = len(times_bin)
+    st = np.zeros((len(a_s), T))
+    for j,s in enumerate(a_s):
+        for i in range(len(st[j])):
+            tc = i*tbin
+            idl = np.where(times <= tc)[0]
+            if len(idl) > 0:
+                st[j][i] = s[idl[-1]]
+            else:
+                pass
+    return times_bin, st
