@@ -343,6 +343,50 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
         self.assertTrue(abs(np.sum(abs(autof-expected_autof))) < 0.5*np.sum(abs(autof)))
 
+    def test_cross_corr(self):
+        N = 40
+        sinit = np.zeros(N)
+        tau = 10.
+        Nrec = N
+        time = 2.5e3
+        mu_target = 0.4
+        tbin = .8
+        tmax = 600.
+        expected_mu = np.ones(N)*mu_target
+        expected_var = mu_target*(1.-mu_target)
+        expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
+        expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
+        expected_cross_brn = -0.004
+        expected_cross = 0.
+        expected_crossf = np.zeros(len(expected_timelag))
+
+        # Network case (correlated sources)
+        w = 0.2
+        g = 8.
+        gamma = 0.
+        epsilon = 0.3
+        W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
+        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s_brn, axis=0), decimal=1)
+        times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
+        timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_bin_brn, st_brn[:30], tmax)
+        nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
+        self.assertTrue(abs(np.sum(autof_brn-expected_autof)) < 0.5*np.sum(abs(autof_brn)))
+        self.assertGreater(expected_cross_brn, crossf_brn[abs(timelag_brn) < 1e-10])
+
+        # Poisson case (independent sources)
+        W = np.zeros((N, N))
+        b = np.ones(N)*hlp.sigmainv(mu_target)
+        a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
+        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s, axis=0), decimal=1)
+        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
+        timelag, autof, crossf = hlp.crosscorrf(times_bin, st[:30], tmax)
+        nptest.assert_array_almost_equal(expected_timelag, timelag)
+        nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
+        nptest.assert_array_almost_equal(expected_crossf, crossf, decimal=2)
+        self.assertAlmostEqual(expected_cross, crossf[abs(timelag) < 1e-10], places=3)
+
 
 if __name__ == '__main__':
     unittest.main()
