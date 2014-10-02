@@ -305,17 +305,32 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_equal(expected_bin, st)
 
     def test_auto_corr(self):
-        N = 40
+        N = 43
         sinit = np.zeros(N)
         tau = 10.
         Nrec = N
-        time = 2.5e3
+        time = 4.5e3
         mu_target = 0.4
         tbin = .6
-        tmax = 500.
+        tmax = 600.
         expected_var = mu_target*(1.-mu_target)
-        expected_timelag = np.hstack([-1.*np.arange(tbin,tmax,tbin)[::-1],0,np.arange(tbin,tmax,tbin)])
+        expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
+
+        # Network case (correlated sources)
+        w = 0.2
+        g = 8.
+        gamma = 0.
+        epsilon = 0.2
+        W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
+        times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
+        timelag_brn, autof_brn = hlp.autocorrf(times_bin_brn, st_brn, tmax)
+        nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
+        self.assertTrue(abs(np.sum(autof_brn-expected_autof)) < 0.5* np.sum(abs(autof_brn)))
+
+        # Poisson (independent)
         W = np.zeros((N, N))
         b = np.ones(N)*hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
@@ -323,7 +338,7 @@ class NetworkTestCase(unittest.TestCase):
         timelag, autof = hlp.autocorrf(times_bin, st, tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
-        self.assertTrue(np.sum(abs(autof-expected_autof)) < 0.5* np.sum(abs(autof)))
+        self.assertTrue(abs(np.sum(abs(autof-expected_autof))) < 0.5* np.sum(abs(autof)))
 
 
 if __name__ == '__main__':

@@ -130,14 +130,10 @@ def bin_binary_data(times, a_states, tbin, time):
     return times_bin, st
 
 def autocorrf(times_bin, st, tmax):
-    tbin = times_bin[1]-times_bin[0]
-    T = times_bin[-1]
-    r = np.mean(st)
     times = np.hstack([-1.*times_bin[1:][::-1],0,times_bin[1::]])
-    autof = np.mean([np.correlate(s,s, 'full') for s in st], axis=0)
-    offset_edge = r**2*np.hstack([np.arange(1,len(times_bin)),len(times_bin),np.arange(1,len(times_bin))[::-1]])
-    autof -= offset_edge
-    autof *= tbin/T
+    Nbins = len(st[0])
+    offset_edge = np.hstack([np.arange(1, Nbins), Nbins, np.arange(1, Nbins)[::-1]])
+    autof = np.mean([np.correlate(s,s, 'full')/offset_edge-np.mean(s)**2 for s in st], axis=0)
     autof = autof[abs(times) <= tmax]
     times = times[abs(times) <= tmax]
     return times, autof
