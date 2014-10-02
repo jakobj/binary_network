@@ -293,17 +293,37 @@ class NetworkTestCase(unittest.TestCase):
     def test_bin_binary_data(self):
         N = 2
         tbin = 0.08
+        time = 2.
         times = np.array([0., 0.1, 0.35, 0.8, 0.95, 1.68])
         a_s = np.array([[0,0], [1,0], [1,1], [1,0], [0,0], [1,0]])
-        expected_times = np.arange(0., np.max(times)+tbin, tbin)
+        expected_times = np.arange(0., time+tbin, tbin)
         expected_bin = np.empty((N,len(expected_times)))
         for i,t in enumerate(expected_times):
             idl = np.where(times <= t)[0]
             expected_bin[0][i] = a_s[idl[-1],0]
             expected_bin[1][i] = a_s[idl[-1],1]
-        times_bin, st = hlp.bin_binary_data(times, a_s, tbin)
+        times_bin, st = hlp.bin_binary_data(times, a_s, tbin, time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
+
+    def test_auto_corr(self):
+        N = 40
+        sinit = np.zeros(N)
+        tau = 10.
+        Nrec = N
+        time = 2.5e3
+        mu_target = 0.4
+        tbin = .6
+        expected_var = mu_target*(1.-mu_target)
+        expected_timelag = np.hstack([-1.*np.arange(tbin,time+tbin,tbin)[::-1],0,np.arange(tbin,time+tbin,tbin)])
+        expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
+        W = np.zeros((N, N))
+        b = np.ones(N)*hlp.sigmainv(mu_target)
+        a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
+        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
+        timelag, autof = hlp.autocorrf(times_bin, st)
+        nptest.assert_array_almost_equal(expected_timelag, timelag)
+        nptest.assert_array_almost_equal(expected_autof, autof, decimal=2)
 
 
 if __name__ == '__main__':

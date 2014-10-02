@@ -114,9 +114,9 @@ def get_weight_noise(beta, sigma, K, gamma, g):
 def Fsigma(x):
     return 0 if sigma(x) < np.random.rand() else 1
 
-def bin_binary_data(times, a_states, tbin):
+def bin_binary_data(times, a_states, tbin, time):
     a_s = a_states.T.copy()
-    times_bin = np.arange(0., np.max(times)+tbin, tbin)
+    times_bin = np.arange(0., time+tbin, tbin)
     T = len(times_bin)
     st = np.zeros((len(a_s), T))
     for j,s in enumerate(a_s):
@@ -128,3 +128,13 @@ def bin_binary_data(times, a_states, tbin):
             else:
                 pass
     return times_bin, st
+def autocorrf(times_bin, st):
+    tbin = times_bin[1]-times_bin[0]
+    T = times_bin[-1]
+    r = np.mean(st)
+    times = np.hstack([-1.*times_bin[1:][::-1],0,times_bin[1::]])
+    autof = np.mean([np.correlate(s,s, 'full') for s in st], axis=0)
+    offset_edge = r**2*np.hstack([np.arange(1,len(times_bin)),len(times_bin),np.arange(1,len(times_bin))[::-1]])
+    autof -= offset_edge
+    autof *= tbin/T
+    return times, autof
