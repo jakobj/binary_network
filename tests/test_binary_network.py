@@ -348,7 +348,7 @@ class NetworkTestCase(unittest.TestCase):
         sinit = np.zeros(N)
         tau = 10.
         Nrec = N
-        time = 2.5e3
+        time = 3e3
         mu_target = 0.4
         tbin = .8
         tmax = 600.
