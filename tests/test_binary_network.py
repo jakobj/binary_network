@@ -159,7 +159,7 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_x, x)
 
     def test_mun_sigman(self):
-        K = 20
+        K = 30
         gamma = 0.8
         g = 6.
         w = 0.2
@@ -190,8 +190,10 @@ class HelperTestCase(unittest.TestCase):
         w = hlp.get_weight_noise(beta, sigmas, K, gamma, g)
         KE = int(gamma*K)
         KI = K-KE
-        xE = w*np.random.normal(0, sigmas, (steps, KE))
-        xI = -g*w*np.random.normal(0, sigmas, (steps, KI))
+        xE = w*np.random.normal(smu, sigmas, (steps, KE))
+        xI = -g*w*np.random.normal(smu, sigmas, (steps, KI))
+        self.assertAlmostEqual(1./w*np.mean(xE), smu, places=3)
+        self.assertAlmostEqual(1./(-g*w)*np.mean(xI), smu, places=3)
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         std = np.std(x)
         self.assertAlmostEqual(expected_std, std, places=1)
@@ -219,13 +221,11 @@ class NetworkTestCase(unittest.TestCase):
         steps = 2e5
         expected_mean = 1./(1.+np.exp(-b[0]))
         expected_variance = hlp.get_variance(expected_mean)
-        def F(x):
-            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma])
             mean = np.mean(a_s)
             variance = np.var(a_s)
             self.assertAlmostEqual(expected_mean, mean, places=1)
@@ -249,7 +249,7 @@ class NetworkTestCase(unittest.TestCase):
             if i == 0:
                 a_states, a_s = sim(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N1,N], [F1,F2])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N1,N], [F1,F2])
             a_means = np.mean(a_s, axis=0)
             expected_means = np.ones(Nrec)*1./(1.+np.exp(-b[0]))
             nptest.assert_array_almost_equal(expected_means, a_means, decimal=1)
@@ -262,13 +262,11 @@ class NetworkTestCase(unittest.TestCase):
         tau = 10.
         Nrec = 2
         steps = 1e5
-        def F(x):
-            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma])
             joints = hlp.get_joints(a_s, 0)
             expected_joints = hlp.get_theo_joints(W,b)
             nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
@@ -281,13 +279,11 @@ class NetworkTestCase(unittest.TestCase):
         tau = 10.
         Nrec = 2
         steps = 2e5
-        def F(x):
-            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps, Nrec, [N], [F])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma])
             marginals = hlp.get_marginals(a_s, 0)
             expected_marginals = hlp.get_theo_marginals(W,b)
             nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
