@@ -22,8 +22,10 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F):
     a_steps = np.arange(steps)
     return a_steps, a_s
 
-def simulate_eve(W, b, tau, sinit, steps, Nrec, l_N, l_F):
+
+def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F):
     N = len(b)
+    steps = np.ceil(1.*N*time/tau)
     s = sinit
     step = 1
     a_s = np.empty((int(steps), Nrec))
