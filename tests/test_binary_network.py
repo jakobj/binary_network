@@ -5,6 +5,8 @@ import numpy.testing as nptest
 import helper as hlp
 import network as bnet
 
+np.random.seed(12345)
+
 class HelperTestCase(unittest.TestCase):
 
     # def setUp(self):
@@ -314,16 +316,18 @@ class NetworkTestCase(unittest.TestCase):
         time = 2.5e3
         mu_target = 0.4
         tbin = .6
+        tmax = 500.
         expected_var = mu_target*(1.-mu_target)
-        expected_timelag = np.hstack([-1.*np.arange(tbin,time+tbin,tbin)[::-1],0,np.arange(tbin,time+tbin,tbin)])
+        expected_timelag = np.hstack([-1.*np.arange(tbin,tmax,tbin)[::-1],0,np.arange(tbin,tmax,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
         W = np.zeros((N, N))
         b = np.ones(N)*hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
-        timelag, autof = hlp.autocorrf(times_bin, st)
+        timelag, autof = hlp.autocorrf(times_bin, st, tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
+        self.assertTrue(np.sum(abs(autof-expected_autof)) < 0.5* np.sum(abs(autof)))
 
 
 if __name__ == '__main__':
