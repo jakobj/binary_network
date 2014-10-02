@@ -159,15 +159,15 @@ class HelperTestCase(unittest.TestCase):
     def test_mun_sigman(self):
         K = 20
         gamma = 0.8
-        g = 4.
+        g = 6.
         w = 0.2
         smu = 0.2
         steps = int(1e5)
         KE = int(gamma*K)
         KI = K-KE
         sigmas = hlp.get_std(smu)
-        xE = w*np.random.normal(0, sigmas, (steps, KE))
-        xI = -g*w*np.random.normal(0, sigmas, (steps, KI))
+        xE = w*np.random.normal(smu, sigmas, (steps, KE))
+        xI = -g*w*np.random.normal(smu, sigmas, (steps, KI))
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         expected_mu = np.mean(x)
         expected_std = np.std(x)
@@ -323,7 +323,7 @@ class NetworkTestCase(unittest.TestCase):
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
         timelag, autof = hlp.autocorrf(times_bin, st)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
-        nptest.assert_array_almost_equal(expected_autof, autof, decimal=2)
+        nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
 
 
 if __name__ == '__main__':
