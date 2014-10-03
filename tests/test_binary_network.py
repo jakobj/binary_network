@@ -387,6 +387,44 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_crossf, crossf, decimal=2)
         self.assertAlmostEqual(expected_cross, abs(crossf[abs(timelag) < 1e-10][0]), places=2)
 
+    def test_input(self):
+        N = 10
+        Nnoise = 100
+        sinit = np.zeros(N+Nnoise)
+        tau = 10.
+        Nrec = N
+        time = 5e3
+        mu_target = 0.42
+        std_target = hlp.get_std(mu_target)
+
+        w = 0.2
+        g = 8.
+        gamma = 0.
+        epsilon = 0.3
+        expected_mu_input = hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)
+        expected_std_input = hlp.get_sigman(epsilon*Nnoise, gamma, g, w, std_target)
+
+        # Network case (correlated sources)
+        W_brn = np.zeros((N+Nnoise, N+Nnoise))
+        W_brn[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+        W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
+        b_brn = np.zeros(N+Nnoise)
+        b_brn[:N] = -w/2.
+        b_brn[N:] = -1.*hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2
+        a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=10)
+        self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - expected_mu_input) < 0.05*abs(expected_mu_input))
+        self.assertTrue( (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input) < 0)
+
+        # Poisson case (independent sources)
+        W = np.zeros((N+Nnoise, N+Nnoise))
+        W[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+        b = np.zeros(N+Nnoise)
+        b[:N] = -w/2.
+        b[N:] = hlp.sigmainv(mu_target)
+        a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=10)
+        self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.02*abs(expected_mu_input))
+        self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.02*expected_std_input)
+
 
 if __name__ == '__main__':
     unittest.main()
