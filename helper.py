@@ -118,16 +118,18 @@ def Fsigma(x):
 def bin_binary_data(times, a_states, tbin, time):
     a_s = a_states.T.copy()
     times_bin = np.arange(0., time+tbin, tbin)
-    T = len(times_bin)
-    st = np.zeros((len(a_s), T))
+    st = np.zeros((len(a_s), len(times_bin)))
+    Ntimes = len(times)
     for j,s in enumerate(a_s):
-        for i in range(len(st[j])):
-            tc = i*tbin
-            idl = np.where(times <= tc)[0]
-            if len(idl) > 0:
-                st[j][i] = s[idl[-1]]
-            else:
-                pass
+        idl = 0
+        for i,tc in enumerate(times_bin):
+            while True:
+                if times[idl] <= tc:
+                    if idl < Ntimes-1 and times[idl+1] <= tc:
+                        idl += 1
+                    else:
+                        break
+            st[j][i] = s[idl]
     return times_bin, st
 
 def autocorrf(times_bin, st, tmax):
