@@ -1,12 +1,15 @@
 import numpy as np
 import heapq as hq
 
-def simulate(W, b, sinit, steps, Nrec, l_N, l_F):
+def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
     N = len(b)
     s = sinit
     step = 1
     a_s = np.empty((int(steps), Nrec))
     a_s[0] = s[:Nrec]
+    if record_ui:
+        a_rec_ui = np.empty((int(steps), Nrec_ui))
+        a_rec_ui[0] = np.zeros(Nrec_ui)
     while step < steps:
         idx = np.random.randint(0, N)
         idF = 0
