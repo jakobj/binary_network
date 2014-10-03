@@ -123,12 +123,8 @@ def bin_binary_data(times, a_states, tbin, time):
     for j,s in enumerate(a_s):
         idl = 0
         for i,tc in enumerate(times_bin):
-            while True:
-                if times[idl] <= tc:
-                    if idl < Ntimes-1 and times[idl+1] <= tc:
-                        idl += 1
-                    else:
-                        break
+            while idl < Ntimes-1 and times[idl+1] <= tc:
+                idl += 1
             st[j][i] = s[idl]
     return times_bin, st
 
