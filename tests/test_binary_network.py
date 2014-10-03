@@ -5,7 +5,7 @@ import numpy.testing as nptest
 import helper as hlp
 import network as bnet
 
-np.random.seed(12345)
+np.random.seed(123456)
 
 class HelperTestCase(unittest.TestCase):
 
@@ -174,9 +174,9 @@ class HelperTestCase(unittest.TestCase):
         expected_mu = np.mean(x)
         expected_std = np.std(x)
         mu = hlp.get_mun(K, gamma, g, w, smu)
-        self.assertAlmostEqual(expected_mu, mu, places=2)
+        self.assertTrue( abs(expected_mu - mu) < 0.05*abs(expected_mu))
         std = hlp.get_sigman(K, gamma, g, w, sigmas)
-        self.assertAlmostEqual(expected_std, std, places=2)
+        self.assertTrue( abs(expected_std - std) < 0.05*expected_std)
 
     def test_weight_noise(self):
         K = 50
@@ -328,7 +328,7 @@ class NetworkTestCase(unittest.TestCase):
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         nptest.assert_array_almost_equal(expected_mu, np.mean(a_s_brn, axis=0), decimal=1)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
-        timelag_brn, autof_brn = hlp.autocorrf(times_bin_brn, st_brn, tmax)
+        timelag_brn, autof_brn = hlp.autocorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
         self.assertTrue(abs(np.sum(autof_brn-expected_autof)) < 0.5*np.sum(abs(autof_brn)))
 
@@ -338,13 +338,13 @@ class NetworkTestCase(unittest.TestCase):
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
         nptest.assert_array_almost_equal(expected_mu, np.mean(a_s, axis=0), decimal=1)
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
-        timelag, autof = hlp.autocorrf(times_bin, st, tmax)
+        timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
         self.assertTrue(abs(np.sum(abs(autof-expected_autof))) < 0.5*np.sum(abs(autof)))
 
     def test_cross_corr(self):
-        N = 40
+        N = 50
         sinit = np.zeros(N)
         tau = 10.
         Nrec = N
@@ -352,7 +352,6 @@ class NetworkTestCase(unittest.TestCase):
         mu_target = 0.4
         tbin = .8
         tmax = 600.
-        expected_mu = np.ones(N)*mu_target
         expected_var = mu_target*(1.-mu_target)
         expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
@@ -368,7 +367,7 @@ class NetworkTestCase(unittest.TestCase):
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
         b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
-        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s_brn, axis=0), decimal=1)
+        self.assertTrue( abs(np.mean(a_s_brn) - mu_target) < 0.1*mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
         timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
@@ -379,7 +378,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N)*hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
-        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s, axis=0), decimal=1)
+        self.assertTrue( abs(np.mean(a_s) - mu_target) < 0.1*mu_target)
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
         timelag, autof, crossf = hlp.crosscorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
@@ -424,6 +423,48 @@ class NetworkTestCase(unittest.TestCase):
         a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.02*abs(expected_mu_input))
         self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.02*expected_std_input)
+
+    def test_calibrate(self):
+        N = 20
+        Nnoise = 120
+        tau = 10.
+        time = 15e3
+        beta = 1.
+        mu_target = 0.41
+        mu_noise_target = -1.8
+        std_noise_target = 8./(np.pi*beta**2)
+
+        Nact = int(mu_target*(N+Nnoise))
+        sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
+        w = 0.2
+        g = 8.
+        gamma = 0.
+        epsilon = 0.3
+
+        # Network case (correlated sources)
+        w_adj, b_adj = hlp.calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target)
+
+        W_brn = np.empty((N+Nnoise, N+Nnoise))
+        W_brn[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w_adj, epsilon)
+        W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
+        b_brn = np.zeros(N+Nnoise)
+        b_brn[:N] = -w_adj/2.+b_adj
+        b_brn[N:] = -1.*hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2.
+        a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, 0, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=N)
+        self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - mu_noise_target) < 0.1*abs(mu_noise_target) )
+        self.assertTrue( abs(np.mean(np.std(a_ui_brn, axis=0)) - std_noise_target)< 0.1*std_noise_target )
+
+        # Poisson case (indendendent sources)
+        w_adj, b_adj = hlp.calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target)
+
+        W = np.empty((N+Nnoise, N+Nnoise))
+        W[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w_adj, epsilon)
+        b = np.zeros(N+Nnoise)
+        b[:N] = -w_adj/2.+b_adj
+        b[N:] = hlp.sigmainv(mu_target)
+        a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, 0, [N, N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=N)
+        self.assertTrue( abs(np.mean(a_ui)+w/2. - mu_noise_target) < 0.05*abs(mu_noise_target) )
+        self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - std_noise_target)< 0.05*std_noise_target )
 
 
 if __name__ == '__main__':

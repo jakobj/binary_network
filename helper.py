@@ -1,5 +1,6 @@
 import numpy as np
 import itertools as itr
+import network as bnet
 
 def create_BM_weight_matrix(N):
     W = 2.*(np.random.rand(N,N)-0.5)
@@ -162,3 +163,34 @@ def crosscorrf(times_bin, st, tmax):
     mu_crossf = mu_crossf[abs(times) <= tmax]
     times = times[abs(times) <= tmax]
     return times, mu_autof, mu_crossf
+
+def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
+    Nrec = N+Nnoise
+    W = np.zeros((N+Nnoise, N+Nnoise))
+    W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+    W[N:,N:] = create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
+    b = np.zeros(N+Nnoise)
+    b[:N] = -w/2.
+    b[N:] = -1.*get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2.
+    Nact = int(mu_target*(N+Nnoise))
+    sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
+    a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N+Nnoise], [theta], record_ui=True, Nrec_ui=N)
+    std_input = np.mean(np.std(a_ui, axis=0))
+    w_adj = w*std_noise_target/std_input
+    b_adj = mu_noise_target-1.*get_mun(epsilon*Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
+    return w_adj, b_adj
+
+def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
+    Nrec = N+Nnoise
+    W = np.zeros((N+Nnoise, N+Nnoise))
+    W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+    b = np.zeros(N+Nnoise)
+    b[:N] = -w/2.
+    b[N:] = sigmainv(mu_target)
+    Nact = int(mu_target*(N+Nnoise))
+    sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
+    a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N, N+Nnoise], [theta, Fsigma], record_ui=True, Nrec_ui=N)
+    std_input = np.mean(np.std(a_ui, axis=0))
+    w_adj = w*std_noise_target/std_input
+    b_adj = mu_noise_target-1.*get_mun(epsilon*Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
+    return w_adj, b_adj
