@@ -373,7 +373,7 @@ class NetworkTestCase(unittest.TestCase):
         timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
         self.assertTrue(abs(np.sum(autof_brn-expected_autof)) < 0.5*np.sum(abs(autof_brn)))
-        self.assertGreater(expected_cross_brn, crossf_brn[abs(timelag_brn) < 1e-10])
+        self.assertTrue(expected_cross_brn > crossf_brn[abs(timelag_brn) < 1e-10][0])
 
         # Poisson case (independent sources)
         W = np.zeros((N, N))
@@ -385,7 +385,7 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
         nptest.assert_array_almost_equal(expected_crossf, crossf, decimal=2)
-        self.assertAlmostEqual(expected_cross, crossf[abs(timelag) < 1e-10], places=3)
+        self.assertAlmostEqual(expected_cross, abs(crossf[abs(timelag) < 1e-10][0]), places=2)
 
 
 if __name__ == '__main__':
