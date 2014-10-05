@@ -141,10 +141,9 @@ class HelperTestCase(unittest.TestCase):
     def test_theta(self):
         x = np.array([1., -.1, -1., .1])
         expected_y = np.array([1., 0., 0., 1.])
-        y = hlp.theta(x)
-        nptest.assert_array_equal(expected_y, y)
-        x = np.array([1., 0., -1., .1])
-        self.assertRaises(ValueError, hlp.theta, x)
+        for yi, xi in zip(expected_y, x):
+            self.assertAlmostEqual(yi, hlp.theta(xi))
+        self.assertRaises(ValueError, hlp.theta, 0.)
 
     def test_sigmoidal(self):
         x = np.random.rand(int(1e2))

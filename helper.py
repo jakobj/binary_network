@@ -92,7 +92,7 @@ def get_DKL(p, q):
     return np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])
 
 def theta(x):
-    if np.any(abs(x)  < 1e-15):
+    if abs(x) < 1e-15:
         raise ValueError('Invalid value in ecountered in theta(x).')
     else:
         return 1./2.*(np.sign(x)+1.)
