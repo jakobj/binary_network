@@ -420,14 +420,14 @@ class NetworkTestCase(unittest.TestCase):
         b[:N] = -w/2.
         b[N:] = hlp.sigmainv(mu_target)
         a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=10)
-        self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.02*abs(expected_mu_input))
-        self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.02*expected_std_input)
+        self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.04*abs(expected_mu_input))
+        self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.04*expected_std_input)
 
     def test_calibrate(self):
         N = 20
         Nnoise = 120
         tau = 10.
-        time = 15e3
+        time = 10e3
         beta = 1.
         mu_target = 0.41
         mu_noise_target = -1.8

@@ -9,7 +9,6 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
     a_s[0] = s[:Nrec]
     if record_ui:
         a_rec_ui = np.empty((int(steps), Nrec_ui))
-        a_rec_ui_temp = np.empty(Nrec_ui)
         a_rec_ui[0] = np.zeros(Nrec_ui)
     while step < steps:
         idx = np.random.randint(0, N)
@@ -22,10 +21,7 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
         ui = np.dot(W[idx,:], s) + b[idx]
         s[idx] = l_F[idF](ui)
         if record_ui:
-            for i in range(Nrec_ui):
-                ui = np.dot(W[i,:], s) + b[i]
-                a_rec_ui_temp = ui
-            a_rec_ui[step] = a_rec_ui_temp
+            a_rec_ui[step] = np.dot(W[:Nrec_ui,:], s) + b[:Nrec_ui]
         a_s[step] = s[:Nrec]
         step += 1
     a_steps = np.arange(steps)
@@ -46,7 +42,6 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, record_ui=False, Nrec_u
     a_steps[0] = 0.
     if record_ui:
         a_rec_ui = np.empty((int(steps), Nrec_ui))
-        a_rec_ui_temp = np.empty(Nrec_ui)
         a_rec_ui[0] = np.zeros(Nrec_ui)
     updates = list(zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N))))
     hq.heapify(updates)
@@ -59,10 +54,7 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, record_ui=False, Nrec_u
             else:
                idF += 1
         if record_ui:
-            for i in range(Nrec_ui):
-                ui = np.dot(W[i,:], s) + b[i]
-                a_rec_ui_temp[i] = ui
-            a_rec_ui[step] = a_rec_ui_temp
+            a_rec_ui[step] = np.dot(W[:Nrec_ui,:], s) + b[:Nrec_ui]
         ui = np.dot(W[idx,:], s) + b[idx]
         s[idx] = l_F[idF](ui)
         a_s[step] = s[:Nrec]
