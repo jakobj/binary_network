@@ -139,28 +139,10 @@ def autocorrf(times_bin, st, tmax):
 
 def crosscorrf(times_bin, st, tmax):
     N = len(st)
-    Nbins = len(times_bin)
-    times = np.hstack([-1.*times_bin[1:][::-1],0,times_bin[1::]])
-    crossf = np.empty((N, N, len(times)))
-    a_r = np.mean(st, axis=1)
-    offset_edge = np.hstack([np.arange(1,Nbins),Nbins,np.arange(1,Nbins)[::-1]])
-    for i in range(N):
-        for j in range(N):
-            crossf[i,j] = np.correlate(st[i], st[j], 'full')/offset_edge-a_r[i]*a_r[j]
-    mu_autof = np.empty((N, len(times)))
-    mu_crossf = np.empty((N**2, len(times)))
-    for i in range(N):
-        for j in range(N):
-            if i == j:
-                mu_autof[i] = crossf[i,j]
-            else:
-                mu_crossf[i*N+j] = crossf[i,j]
-    mu_autof = np.mean(mu_autof, axis=0)
-    mu_crossf = 1./(N*(N-1.))*np.sum(mu_crossf, axis=0)
-    mu_autof = mu_autof[abs(times) <= tmax]
-    mu_crossf = mu_crossf[abs(times) <= tmax]
-    times = times[abs(times) <= tmax]
-    return times, mu_autof, mu_crossf
+    times_cauto, cauto = autocorrf(times_bin, [np.sum(st, axis=0)], tmax)
+    times_autof, mu_autof = autocorrf(times_bin, st, tmax)
+    mu_crossf = 1./(N*(N-1))*(cauto-1.*N*mu_autof)
+    return times_autof, mu_autof, mu_crossf
 
 def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
     Nrec = N+Nnoise

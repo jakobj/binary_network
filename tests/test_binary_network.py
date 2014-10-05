@@ -5,7 +5,7 @@ import numpy.testing as nptest
 import helper as hlp
 import network as bnet
 
-np.random.seed(123456)
+np.random.seed(12345)
 
 class HelperTestCase(unittest.TestCase):
 
@@ -351,7 +351,7 @@ class NetworkTestCase(unittest.TestCase):
         time = 3e3
         mu_target = 0.4
         tbin = .8
-        tmax = 600.
+        tmax = 400.
         expected_var = mu_target*(1.-mu_target)
         expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
