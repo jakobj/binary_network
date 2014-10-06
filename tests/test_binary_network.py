@@ -5,7 +5,7 @@ import numpy.testing as nptest
 import helper as hlp
 import network as bnet
 
-np.random.seed(12345)
+np.random.seed(123456)
 
 class HelperTestCase(unittest.TestCase):
 
@@ -354,7 +354,7 @@ class NetworkTestCase(unittest.TestCase):
         expected_var = mu_target*(1.-mu_target)
         expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
-        expected_cross_brn = -0.004
+        expected_cross_brn = -0.003
         expected_cross = 0.
         expected_crossf = np.zeros(len(expected_timelag))
 
@@ -432,6 +432,8 @@ class NetworkTestCase(unittest.TestCase):
         mu_target = 0.41
         mu_noise_target = -1.8
         std_noise_target = 8./(np.pi*beta**2)
+        tbin = 0.8
+        tmax = 500.
 
         Nact = int(mu_target*(N+Nnoise))
         sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
@@ -453,6 +455,12 @@ class NetworkTestCase(unittest.TestCase):
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - mu_noise_target) < 0.1*abs(mu_noise_target) )
         self.assertTrue( abs(np.mean(np.std(a_ui_brn, axis=0)) - std_noise_target)< 0.1*std_noise_target )
 
+        times_u_brn, u_brn = hlp.bin_binary_data(a_times_brn, a_ui_brn, tbin, time)
+        timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_u_brn, u_brn, tmax)
+        self.assertTrue( abs(np.max(autof_brn) - std_noise_target**2) < 0.1*std_noise_target**2)
+        self.assertTrue( abs(np.max(autof_brn) - np.mean(np.std(a_ui_brn, axis=0))**2) < 0.01*np.mean(np.std(a_ui_brn, axis=0))**2)
+        self.assertTrue( np.max(crossf_brn)/np.max(autof_brn) < 0.2*epsilon)
+
         # Poisson case (indendendent sources)
         w_adj, b_adj = hlp.calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target)
 
@@ -464,6 +472,11 @@ class NetworkTestCase(unittest.TestCase):
         a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, 0, [N, N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=N)
         self.assertTrue( abs(np.mean(a_ui)+w/2. - mu_noise_target) < 0.05*abs(mu_noise_target) )
         self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - std_noise_target)< 0.05*std_noise_target )
+
+        times_u, u = hlp.bin_binary_data(a_times, a_ui, tbin, time)
+        timelag, autof, crossf = hlp.crosscorrf(times_u, u, tmax)
+        self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
+        self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.05*epsilon)
 
 
 if __name__ == '__main__':
