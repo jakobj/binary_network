@@ -109,9 +109,6 @@ def get_mun(K, gamma, g, w, smu):
 def get_sigman(K, gamma, g, w, sigma):
     return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*sigma**2)
 
-def get_weight_noise(beta, sigma, K, gamma, g):
-    return np.sqrt(8./(np.pi*beta**2*sigma**2*K*(gamma + (1.-gamma)*g**2)))
-
 def Fsigma(x):
     return 0 if sigma(x) < np.random.rand() else 1
 

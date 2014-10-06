@@ -11,7 +11,7 @@ class HelperTestCase(unittest.TestCase):
 
     # def setUp(self):
     # def tearDown(self):
-    
+
     def test_BM_weight_matrix(self):
         N = 10
         expected_diag = np.zeros(N)
@@ -177,26 +177,6 @@ class HelperTestCase(unittest.TestCase):
         std = hlp.get_sigman(K, gamma, g, w, sigmas)
         self.assertTrue( abs(expected_std - std) < 0.05*expected_std)
 
-    def test_weight_noise(self):
-        K = 50
-        gamma = 0.8
-        g = 6
-        smu = 0.4
-        beta = .7
-        steps = int(2e5)
-        sigmas = hlp.get_std(smu)
-        expected_std = np.sqrt(8./(np.pi*beta**2))
-        w = hlp.get_weight_noise(beta, sigmas, K, gamma, g)
-        KE = int(gamma*K)
-        KI = K-KE
-        xE = w*np.random.normal(smu, sigmas, (steps, KE))
-        xI = -g*w*np.random.normal(smu, sigmas, (steps, KI))
-        self.assertAlmostEqual(1./w*np.mean(xE), smu, places=3)
-        self.assertAlmostEqual(1./(-g*w)*np.mean(xI), smu, places=3)
-        x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
-        std = np.std(x)
-        self.assertAlmostEqual(expected_std, std, places=1)
-
     def test_Fsigma(self):
         samples = int(5e4)
         x = np.random.rand(samples)
@@ -304,7 +284,7 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_equal(expected_bin, st)
 
     def test_auto_corr(self):
-        N = 48
+        N = 58
         sinit = np.zeros(N)
         tau = 10.
         Nrec = N
@@ -312,7 +292,6 @@ class NetworkTestCase(unittest.TestCase):
         mu_target = 0.4
         tbin = .6
         tmax = 600.
-        expected_mu = np.ones(N)*mu_target
         expected_var = mu_target*(1.-mu_target)
         expected_timelag = np.hstack([-1.*np.arange(tbin,tmax+tbin,tbin)[::-1],0,np.arange(tbin,tmax+tbin,tbin)])
         expected_autof = expected_var*np.exp(-1.*abs(expected_timelag)/tau)
@@ -321,11 +300,11 @@ class NetworkTestCase(unittest.TestCase):
         w = 0.2
         g = 8.
         gamma = 0.
-        epsilon = 0.3
+        epsilon = 0.2
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
         b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
-        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s_brn, axis=0), decimal=1)
+        self.assertAlmostEqual(mu_target, np.mean(a_s_brn), places=1)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
         timelag_brn, autof_brn = hlp.autocorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
@@ -335,7 +314,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N)*hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
-        nptest.assert_array_almost_equal(expected_mu, np.mean(a_s, axis=0), decimal=1)
+        self.assertAlmostEqual(mu_target, np.mean(a_s), places=2)
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
         timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
@@ -476,7 +455,7 @@ class NetworkTestCase(unittest.TestCase):
         times_u, u = hlp.bin_binary_data(a_times, a_ui, tbin, time)
         timelag, autof, crossf = hlp.crosscorrf(times_u, u, tmax)
         self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
-        self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.05*epsilon)
+        self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)
 
 
 if __name__ == '__main__':
