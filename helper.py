@@ -1,5 +1,7 @@
 import numpy as np
 import itertools as itr
+from collections import defaultdict
+
 import network as bnet
 
 def create_BM_weight_matrix(N):
@@ -75,11 +77,12 @@ def get_std(mu):
     return np.sqrt(get_variance(mu))
 
 def get_joints(a_s, steps_warmup):
-    N = len(a_s[0])
-    statetensor = np.zeros([2 for i in range(N)])
-    for s in a_s[int(steps_warmup):]:
-        statetensor[tuple(s)] += 1
-    return 1.*statetensor.flatten()/len(a_s[steps_warmup:])
+    steps_tot = len(a_s[steps_warmup:])
+    states = defaultdict(int)
+    for s in a_s[steps_warmup:]:
+        states[tuple(s)] += 1
+    states = np.array([it[1] for it in sorted(states.items())])
+    return 1.*states/steps_tot
 
 def get_marginals(a_s, steps_warmup):
     N = len(a_s[0])
