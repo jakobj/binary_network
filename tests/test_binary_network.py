@@ -158,7 +158,9 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_x, x)
 
     def test_mun_sigman(self):
-        K = 30
+        N = 300
+        epsilon = 0.1
+        K = epsilon*N
         gamma = 0.8
         g = 6.
         w = 0.2
@@ -172,9 +174,9 @@ class HelperTestCase(unittest.TestCase):
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         expected_mu = np.mean(x)
         expected_std = np.std(x)
-        mu = hlp.get_mun(K, gamma, g, w, smu)
+        mu = hlp.get_mun(epsilon, N, gamma, g, w, smu)
         self.assertTrue( abs(expected_mu - mu) < 0.05*abs(expected_mu))
-        std = hlp.get_sigman(K, gamma, g, w, sigmas)
+        std = hlp.get_sigman(epsilon, N, gamma, g, w, sigmas)
         self.assertTrue( abs(expected_std - std) < 0.05*expected_std)
 
     def test_Fsigma(self):
@@ -302,7 +304,7 @@ class NetworkTestCase(unittest.TestCase):
         gamma = 0.
         epsilon = 0.2
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
-        b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        b_brn = -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         self.assertAlmostEqual(mu_target, np.mean(a_s_brn), places=1)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
@@ -343,7 +345,7 @@ class NetworkTestCase(unittest.TestCase):
         gamma = 0.
         epsilon = 0.3
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
-        b_brn = -1.*hlp.get_mun(epsilon*N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        b_brn = -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         self.assertTrue( abs(np.mean(a_s_brn) - mu_target) < 0.1*mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
@@ -378,8 +380,8 @@ class NetworkTestCase(unittest.TestCase):
         g = 8.
         gamma = 0.
         epsilon = 0.3
-        expected_mu_input = hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)
-        expected_std_input = hlp.get_sigman(epsilon*Nnoise, gamma, g, w, std_target)
+        expected_mu_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)
+        expected_std_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, std_target)
 
         # Network case (correlated sources)
         W_brn = np.zeros((N+Nnoise, N+Nnoise))
@@ -387,7 +389,7 @@ class NetworkTestCase(unittest.TestCase):
         W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
         b_brn = np.zeros(N+Nnoise)
         b_brn[:N] = -w/2.
-        b_brn[N:] = -1.*hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2
+        b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2
         a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - expected_mu_input) < 0.05*abs(expected_mu_input))
         self.assertTrue( (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input) < 0)
@@ -429,7 +431,7 @@ class NetworkTestCase(unittest.TestCase):
         W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
         b_brn = np.zeros(N+Nnoise)
         b_brn[:N] = -w_adj/2.+b_adj
-        b_brn[N:] = -1.*hlp.get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2.
+        b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
         a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, 0, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=N)
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - mu_noise_target) < 0.1*abs(mu_noise_target) )
         self.assertTrue( abs(np.mean(np.std(a_ui_brn, axis=0)) - std_noise_target)< 0.1*std_noise_target )

@@ -106,11 +106,11 @@ def sigma(x):
 def sigmainv(y):
     return np.log(1./(1./y - 1.))
 
-def get_mun(K, gamma, g, w, smu):
-    return (gamma - (1.-gamma)*g)*K*w*smu
+def get_mun(epsilon, N, gamma, g, w, smu):
+    return (gamma - (1.-gamma)*g)*epsilon*N*w*smu
 
-def get_sigman(K, gamma, g, w, sigma):
-    return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*sigma**2)
+def get_sigman(epsilon, N, gamma, g, w, sigma):
+    return np.sqrt((gamma + (1.-gamma)*g**2)*epsilon*N*w**2*sigma**2)
 
 def Fsigma(x):
     return 0 if sigma(x) < np.random.rand() else 1
@@ -151,13 +151,13 @@ def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_no
     W[N:,N:] = create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
     b = np.zeros(N+Nnoise)
     b[:N] = -w/2.
-    b[N:] = -1.*get_mun(epsilon*Nnoise, gamma, g, w, mu_target)-1.*w/2.
+    b[N:] = -1.*get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
     Nact = int(mu_target*(N+Nnoise))
     sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
     a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N+Nnoise], [theta], record_ui=True, Nrec_ui=N)
     std_input = np.mean(np.std(a_ui, axis=0))
     w_adj = w*std_noise_target/std_input
-    b_adj = mu_noise_target-1.*get_mun(epsilon*Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
+    b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
     return w_adj, b_adj
 
 def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
@@ -172,5 +172,5 @@ def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_targe
     a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N, N+Nnoise], [theta, Fsigma], record_ui=True, Nrec_ui=N)
     std_input = np.mean(np.std(a_ui, axis=0))
     w_adj = w*std_noise_target/std_input
-    b_adj = mu_noise_target-1.*get_mun(epsilon*Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
+    b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
     return w_adj, b_adj
