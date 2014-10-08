@@ -390,7 +390,7 @@ class NetworkTestCase(unittest.TestCase):
         b_brn = np.zeros(N+Nnoise)
         b_brn[:N] = -w/2.
         b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2
-        a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=10)
+        a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - expected_mu_input) < 0.05*abs(expected_mu_input))
         self.assertTrue( (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input) < 0)
 
@@ -400,7 +400,7 @@ class NetworkTestCase(unittest.TestCase):
         b = np.zeros(N+Nnoise)
         b[:N] = -w/2.
         b[N:] = hlp.sigmainv(mu_target)
-        a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=10)
+        a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.04*abs(expected_mu_input))
         self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.04*expected_std_input)
 
@@ -432,11 +432,12 @@ class NetworkTestCase(unittest.TestCase):
         b_brn = np.zeros(N+Nnoise)
         b_brn[:N] = -w_adj/2.+b_adj
         b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
-        a_times_brn, a_s_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, 0, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=N)
+        a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, N+10, [N+Nnoise], [hlp.theta], record_ui=True, Nrec_ui=N)
+        # import pdb; pdb.set_trace()
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - mu_noise_target) < 0.1*abs(mu_noise_target) )
         self.assertTrue( abs(np.mean(np.std(a_ui_brn, axis=0)) - std_noise_target)< 0.1*std_noise_target )
 
-        times_u_brn, u_brn = hlp.bin_binary_data(a_times_brn, a_ui_brn, tbin, time)
+        times_u_brn, u_brn = hlp.bin_binary_data(a_times_ui_brn, a_ui_brn, tbin, time)
         timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_u_brn, u_brn, tmax)
         self.assertTrue( abs(np.max(autof_brn) - std_noise_target**2) < 0.1*std_noise_target**2)
         self.assertTrue( abs(np.max(autof_brn) - np.mean(np.std(a_ui_brn, axis=0))**2) < 0.01*np.mean(np.std(a_ui_brn, axis=0))**2)
@@ -450,11 +451,11 @@ class NetworkTestCase(unittest.TestCase):
         b = np.zeros(N+Nnoise)
         b[:N] = -w_adj/2.+b_adj
         b[N:] = hlp.sigmainv(mu_target)
-        a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, 0, [N, N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=N)
+        a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, 0, [N, N+Nnoise], [hlp.theta, hlp.Fsigma], record_ui=True, Nrec_ui=N)
         self.assertTrue( abs(np.mean(a_ui)+w/2. - mu_noise_target) < 0.05*abs(mu_noise_target) )
         self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - std_noise_target)< 0.05*std_noise_target )
 
-        times_u, u = hlp.bin_binary_data(a_times, a_ui, tbin, time)
+        times_u, u = hlp.bin_binary_data(a_times_ui, a_ui, tbin, time)
         timelag, autof, crossf = hlp.crosscorrf(times_u, u, tmax)
         self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
         self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)

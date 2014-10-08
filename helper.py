@@ -154,7 +154,7 @@ def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_no
     b[N:] = -1.*get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
     Nact = int(mu_target*(N+Nnoise))
     sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
-    a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N+Nnoise], [theta], record_ui=True, Nrec_ui=N)
+    a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N+Nnoise], [theta], record_ui=True, Nrec_ui=N)
     std_input = np.mean(np.std(a_ui, axis=0))
     w_adj = w*std_noise_target/std_input
     b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
@@ -169,7 +169,7 @@ def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_targe
     b[N:] = sigmainv(mu_target)
     Nact = int(mu_target*(N+Nnoise))
     sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
-    a_times, a_s, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N, N+Nnoise], [theta, Fsigma], record_ui=True, Nrec_ui=N)
+    a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N, N+Nnoise], [theta, Fsigma], record_ui=True, Nrec_ui=N)
     std_input = np.mean(np.std(a_ui, axis=0))
     w_adj = w*std_noise_target/std_input
     b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
