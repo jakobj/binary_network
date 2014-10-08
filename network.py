@@ -31,7 +31,8 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
         return a_steps, a_s
 
 
-def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
+def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0):
+    record_ui = True if Nrec_ui > 0 else False
     N = len(b)
     steps = int(np.ceil(1.*N*time/tau))
     s = sinit
