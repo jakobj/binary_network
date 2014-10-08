@@ -145,7 +145,7 @@ def crosscorrf(times_bin, st, tmax):
     return times_autof, mu_autof, mu_crossf
 
 def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
-    Nrec = N+Nnoise
+    Nrec = N+np.min([Nnoise, 120])
     W = np.zeros((N+Nnoise, N+Nnoise))
     W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
     W[N:,N:] = create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
@@ -161,7 +161,7 @@ def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_no
     return w_adj, b_adj
 
 def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
-    Nrec = N+Nnoise
+    Nrec = N+np.min([Nnoise, 120])
     W = np.zeros((N+Nnoise, N+Nnoise))
     W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
     b = np.zeros(N+Nnoise)
