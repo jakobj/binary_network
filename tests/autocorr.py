@@ -6,36 +6,21 @@ import correlation_toolbox.correlation_analysis as ctana
 import network as bnet
 import helper as hlp
 
-def autocorrf_time(times, a_s, tmax, tbin):
-    st = []
-    for s in a_s:
-        st.append(times[s>0])
-    return ctana.autocorrfunc_time(st, tmax, tbin, times[-1], units=True)
+np.random.seed(1234)
 
-def autocorrf(times, a_s, tmax, tbin):
-    times_bin = np.arange(0., np.max(times), tbin)
-    T = len(times_bin)
-    st = np.zeros((len(a_s), T))
-    for j,s in enumerate(a_s):
-        # tup = times[s>0]
-        for i in range(len(st[j])):
-            tc = i*tbin
-            idl = np.where(times <= tc)[0]
-            if len(idl) > 0:
-                st[j][i] = s[idl[-1]]
-            else:
-                pass
+def crosscorrf(times, a_s, tmax, tbin):
+    times_bin, st = hlp.bin_binary_data(times, a_s, tbin)
+    freq, cross = ctana.crossspec(st, tbin, units=True)
+    return ctana.crosscorrfunc(freq, cross)
 
-    freq, power = ctana.powerspec(st, tbin, units=True)
-    return ctana.autocorrfunc(freq, power)
-
-N = 50
+N = 60
 sinit = np.zeros(N)
 tau = 10.
-Nrec = 30
+Nrec = 40
 time = 2e3
-mu_target = 0.3
-tmax = 200.
+mu_target = 0.5
+tmax = 300.
+tbin = .6
 
 w = 0.2
 g = 8.
@@ -58,24 +43,50 @@ r_noise = np.mean(a_s_noise)
 print 'noise', r_noise
 offset_noise = N*1./tau*1e3*r_noise**2
 
-timelag_brn, autof_brn = autocorrf_time(a_times_brn, a_s_brn.T, tmax, 1.)
-timelag_brn_alt, autof_brn_alt = autocorrf(a_times_brn, a_s_brn.T, tmax, 1.)
-timelag_noise, autof_noise = autocorrf_time(a_times_noise, a_s_noise.T, tmax, 1.)
+timelag_brn, autof_brn = autocorrf_time(a_times_brn, a_s_brn, tmax, tbin)
+timelag_brn_alt, autof_brn_alt = autocorrf(a_times_brn, a_s_brn, tmax, tbin)
+timelag_noise, autof_noise = autocorrf_time(a_times_noise, a_s_noise, tmax, tbin)
+timelag_noise_alt, autof_noise_alt = autocorrf(a_times_noise, a_s_noise, tmax, tbin)
 
-offset_brn_alt = np.mean(autof_brn_alt[:15])
+timelag_brn_cross_alt, crossf_brn_alt = crosscorrf(a_times_brn, a_s_brn, tmax, tbin)
+timelag_noise_cross_alt, crossf_noise_alt = crosscorrf(a_times_noise, a_s_noise, tmax, tbin)
+
+offset_brn_alt = r_brn**2*1./tbin*1e3
+offset_noise_alt = r_noise**2*1./tbin*1e3
+
+autof_brn -= offset_brn
+autof_brn_alt -= offset_brn_alt
+autof_noise -= offset_noise
+autof_noise_alt -= offset_noise_alt
 
 var_brn = autof_brn[abs(timelag_brn) < 1e-8]
-var_brn_alt = np.mean(autof_brn_alt[abs(timelag_brn_alt) < 0.9*1.])
+var_brn_alt = np.mean(autof_brn_alt[abs(timelag_brn_alt) < 0.9*tbin])
 var_noise = autof_noise[abs(timelag_noise) < 1e-8]
+var_noise_alt = np.mean(autof_brn_alt[abs(timelag_brn_alt) < 0.9*tbin])
 
 autof_brn = 1.*(autof_brn)/var_brn
 autof_brn_alt = 1.*(autof_brn_alt)/var_brn_alt
 autof_noise = 1.*(autof_noise)/var_noise
+autof_noise_alt = 1.*(autof_noise_alt)/var_noise_alt
 
-plt.plot(timelag_brn, 1.*autof_brn, 'b')
-plt.plot(timelag_brn_alt, 1.*autof_brn_alt, 'g')
-plt.plot(timelag_noise, 1.*autof_noise, 'r')
-plt.plot(timelag_noise, np.exp(-1.*abs(timelag_noise)/tau), 'k')
+fig1 = plt.figure(1)
+ax1 = fig1.add_subplot(111)
+ax1.plot(timelag_brn, 1.*autof_brn, 'b', label='BRN (via time)')
+ax1.plot(timelag_brn_alt, 1.*autof_brn_alt, 'g', label='BRN (via FT)')
+ax1.plot(timelag_noise, 1.*autof_noise, 'r', label='\"Poisson\"')
+ax1.plot(timelag_noise_alt, 1.*autof_noise_alt, 'm', label='\"Poisson\" (via FT)')
+ax1.plot(timelag_noise, np.exp(-1.*abs(timelag_noise)/tau), 'k', label=r'$e^{-t/\tau}$')
+ax1.set_xlim([-200., 200.])
+ax1.set_xlabel('Timelag (ms)')
+ax1.set_ylabel('Autocorrelation (1/s)')
+ax1.legend()
+
+fig2 = plt.figure(2)
+ax2 = fig2.add_subplot(111)
+ax2.plot(timelag_brn_cross_alt, crossf_brn_alt-offset_brn_alt, 'g', label='BRN')
+ax2.plot(timelag_noise_cross_alt, crossf_noise_alt-offset_noise_alt, 'm', label='\"Poisson\"')
+ax2.set_xlim([-200., 200.])
+ax2.set_xlabel('Timelag (ms)')
+ax2.set_ylabel('Crosscorrelation (1/s)')
+ax2.legend()
 plt.show()
-
-
