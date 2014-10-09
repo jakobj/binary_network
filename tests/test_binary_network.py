@@ -368,7 +368,7 @@ class NetworkTestCase(unittest.TestCase):
 
     def test_input(self):
         N = 10
-        Nnoise = 100
+        Nnoise = 120
         sinit = np.zeros(N+Nnoise)
         tau = 10.
         Nrec = N
