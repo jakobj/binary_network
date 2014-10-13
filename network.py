@@ -1,7 +1,7 @@
 import numpy as np
 import heapq as hq
 
-def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
+def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None, beta=1.):
     N = len(b)
     s = sinit
     step = 1
@@ -19,7 +19,7 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
             else:
                idF += 1
         ui = np.dot(W[idx,:], s) + b[idx]
-        s[idx] = l_F[idF](ui)
+        s[idx] = l_F[idF](ui, beta)
         if record_ui:
             a_rec_ui[step] = np.dot(W[:Nrec_ui,:], s) + b[:Nrec_ui]
         a_s[step] = s[:Nrec]
@@ -31,7 +31,7 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None):
         return a_steps, a_s
 
 
-def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0):
+def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
     record_s = True if Nrec > 0 else False
     record_ui = True if Nrec_ui > 0 else False
     N = len(b)
@@ -67,7 +67,7 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0):
             a_steps_ui[relstep_ui] = time
             relstep_ui += 1
         ui = np.dot(W[idx,:], s) + b[idx]
-        s[idx] = l_F[idF](ui)
+        s[idx] = l_F[idF](ui, beta)
         if record_s and idx < Nrec:
             a_s[relstep] = s[:Nrec]
             a_steps[relstep] = time

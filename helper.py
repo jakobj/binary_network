@@ -48,26 +48,26 @@ def create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon):
     return W
 
 def get_E(W, b, s):
-    return np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
+    return -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
 
 def get_states(N):
     return np.array([np.array(x) for x in itr.product([0, 1], repeat=N)])
 
-def get_theo_marginals(W, b):
+def get_theo_marginals(W, b, beta):
     N = len(b)
-    joints = get_theo_joints(W, b)
+    joints = get_theo_joints(W, b, beta)
     states = get_states(N)
     p = []
     for i in range(N):
         p.append(np.sum(joints[states[:,i] == 1]))
     return p
 
-def get_theo_joints(W, b):
+def get_theo_joints(W, b, beta):
     N = len(b)
     p = []
     states = get_states(N)
     for state in states:
-        p.append(np.exp(get_E(np.array(W), np.array(b), np.array(state))))
+        p.append(np.exp(-1.*beta*get_E(np.array(W), np.array(b), np.array(state))))
     return 1.*np.array(p)/np.sum(p)
 
 def get_variance(mu):
@@ -94,14 +94,14 @@ def get_marginals(a_s, steps_warmup):
 def get_DKL(p, q):
     return np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])
 
-def theta(x):
+def theta(x, beta=1.):
     if abs(x) < 1e-15:
         raise ValueError('Invalid value in ecountered in theta(x).')
     else:
         return 1./2.*(np.sign(x)+1.)
 
-def sigma(x):
-    return 1./(1. + np.exp(-x))
+def sigma(x, beta=1.):
+    return 1./(1. + np.exp(-beta*x))
 
 def sigmainv(y):
     return np.log(1./(1./y - 1.))
@@ -112,8 +112,8 @@ def get_mun(epsilon, N, gamma, g, w, smu):
 def get_sigman(epsilon, N, gamma, g, w, sigma):
     return np.sqrt((gamma + (1.-gamma)*g**2)*epsilon*N*w**2*sigma**2)
 
-def Fsigma(x):
-    return 0 if sigma(x) < np.random.rand() else 1
+def Fsigma(x, beta=1.):
+    return 0 if sigma(x, beta) < np.random.rand() else 1
 
 def bin_binary_data(times, a_states, tbin, time):
     a_s = a_states.T.copy()

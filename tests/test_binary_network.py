@@ -68,38 +68,40 @@ class HelperTestCase(unittest.TestCase):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
         s = np.array([1,0])
-        expected_E = np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
+        expected_E = -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
         E = hlp.get_E(W, b, s)
         self.assertAlmostEqual(expected_E, E)
 
     def test_get_theo_joints(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
+        beta = 0.5
         N = len(b)
         expected_joints = []
         states = hlp.get_states(N)
         for s in states:
-            expected_joints.append(np.exp(hlp.get_E(W, b, s)))
+            expected_joints.append(np.exp(-1.*beta*hlp.get_E(W, b, s)))
         expected_joints = 1.*np.array(expected_joints)/np.sum(expected_joints)
-        joints = hlp.get_theo_joints(W,b)
+        joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints)
 
     def test_get_theo_marginals(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
+        beta = 0.8
         N = len(b)
         expected_marginals = []
         states = hlp.get_states(N)
         Z = 0
         for s in states:
-            Z += np.exp(hlp.get_E(W, b, s))
+            Z += np.exp(-1.*beta*hlp.get_E(W, b, s))
         for i in range(2):
             statesi = states[states[:,i] == 1]
             p = 0
             for s in statesi:
-                p += np.exp(hlp.get_E(W, b, s))
+                p += np.exp(-1.*beta*hlp.get_E(W, b, s))
             expected_marginals.append(1./Z*p)
-        marginals = hlp.get_theo_marginals(W,b)
+        marginals = hlp.get_theo_marginals(W, b, beta)
         nptest.assert_array_almost_equal(expected_marginals, marginals)
 
     def test_get_states(self):
@@ -222,10 +224,10 @@ class NetworkTestCase(unittest.TestCase):
         tau = 10.
         Nrec = 20
         steps = 2e5
-        def F1(x):
-            return 0 if 1./(1+np.exp(-x)) < np.random.rand() else 1
-        def F2(x):
-            return 0 if 1./(1+np.exp(-x+0.7)) < np.random.rand() else 1
+        def F1(x, beta):
+            return 0 if 1./(1+np.exp(-beta*x)) < np.random.rand() else 1
+        def F2(x, beta):
+            return 0 if 1./(1+np.exp(-beta*x+0.7)) < np.random.rand() else 1
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
                 a_states, a_s = sim(W, b, sinit, steps, Nrec, [N1,N], [F1,F2])
@@ -239,34 +241,36 @@ class NetworkTestCase(unittest.TestCase):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
+        beta = 0.8
         sinit = np.random.randint(0, 2, N)
         tau = 10.
         Nrec = 2
         steps = 1e5
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma], beta=beta)
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma], beta=beta)
             joints = hlp.get_joints(a_s, 0)
-            expected_joints = hlp.get_theo_joints(W,b)
+            expected_joints = hlp.get_theo_joints(W, b, beta)
             nptest.assert_array_almost_equal(expected_joints, joints, decimal=1)
 
     def test_marginal_distribution(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
+        beta = 0.7
         sinit = np.random.randint(0, 2, N)
         tau = 10.
         Nrec = 2
         steps = 2e5
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
+                a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma], beta=beta)
             else:
-                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma])
+                a_states, a_s = sim(W, b, tau, sinit, steps*tau/N, Nrec, [N], [hlp.Fsigma], beta=beta)
             marginals = hlp.get_marginals(a_s, 0)
-            expected_marginals = hlp.get_theo_marginals(W,b)
+            expected_marginals = hlp.get_theo_marginals(W, b, beta)
             nptest.assert_array_almost_equal(expected_marginals, marginals, decimal=2)
 
     def test_bin_binary_data(self):
