@@ -4,6 +4,7 @@ import numpy.testing as nptest
 
 import helper as hlp
 import network as bnet
+import meanfield as bmf
 
 np.random.seed(123456)
 
@@ -178,7 +179,7 @@ class HelperTestCase(unittest.TestCase):
         expected_std = np.std(x)
         mu = hlp.get_mun(epsilon, N, gamma, g, w, smu)
         self.assertTrue( abs(expected_mu - mu) < 0.05*abs(expected_mu))
-        std = hlp.get_sigman(epsilon, N, gamma, g, w, sigmas)
+        std = hlp.get_sigman(epsilon, N, gamma, g, w, smu)
         self.assertTrue( abs(expected_std - std) < 0.05*expected_std)
 
     def test_Fsigma(self):
@@ -378,14 +379,13 @@ class NetworkTestCase(unittest.TestCase):
         Nrec = N
         time = 5e3
         mu_target = 0.42
-        std_target = hlp.get_std(mu_target)
 
         w = 0.2
         g = 8.
         gamma = 0.
         epsilon = 0.3
         expected_mu_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)
-        expected_std_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, std_target)
+        expected_std_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_target)
 
         # Network case (correlated sources)
         W_brn = np.zeros((N+Nnoise, N+Nnoise))
@@ -462,6 +462,56 @@ class NetworkTestCase(unittest.TestCase):
         timelag, autof, crossf = hlp.crosscorrf(times_u, u, tmax)
         self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
         self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)
+
+    def test_mu_theo_sigma_theo(self):
+        N = 500
+        T = 2e4
+        w = 0.1
+        g = 8.
+        epsilon = 0.3
+        gamma = 0.
+        mu_target = 0.15
+        tau = 10.
+        Nrec = 30
+
+        W = np.zeros((N, N))
+        W = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        b = np.zeros(N)
+        b += -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
+        sinit = np.array(np.random.randint(0, 2, N), dtype=np.int)
+
+        # times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), T, Nrec, [N], [hlp.theta])
+        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), T, Nrec, [N], [hlp.theta], Nrec_ui=Nrec)
+        a_ui = a_ui[200:]
+        a_s = a_s[200:]
+        mu_noise_activity = np.mean(a_s)
+        std_noise_activity = np.mean(np.std(a_s, axis=0))
+
+        # empirical
+        mu_noise = np.mean(a_ui)
+        std_noise = np.mean(np.std(a_ui, axis=0))
+
+        # naive meanfield
+        mu_theo = bmf.get_mu_meanfield(epsilon, N, gamma, g, w, b[0], mu_target, 0)
+        std_theo = hlp.get_std(mu_theo)
+        mu_theo_input = hlp.get_mun(epsilon, N, gamma, g, w, mu_theo)-1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
+        std_theo_input = hlp.get_sigman(epsilon, N, gamma, g, w, mu_theo)
+
+        # improved meanfield
+        mu_iter, c_iter = bmf.get_m_c_iter(epsilon, N, gamma, g, w, b[0], mu_target)
+        std_iter = hlp.get_std(mu_iter)
+        mu_iter_input = hlp.get_mun(epsilon, N, gamma, g, w, mu_iter)-1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
+        std_iter_input = bmf.get_sigma_meanfield(epsilon, N, gamma, g, w, mu_iter, c_iter)
+
+        self.assertAlmostEqual(mu_noise_activity, mu_theo, delta=0.1*mu_theo)
+        self.assertAlmostEqual(std_noise_activity, std_theo, delta=0.1*std_theo)
+        self.assertAlmostEqual(mu_noise, mu_theo_input, delta=abs(0.15*mu_theo_input))
+        self.assertAlmostEqual(std_noise, std_theo_input, delta=abs(0.2*std_theo_input))
+
+        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.02*mu_iter)
+        self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.01*std_iter)
+        self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.01*mu_iter_input))
+        self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.01*std_iter_input))
 
 
 if __name__ == '__main__':

@@ -109,8 +109,9 @@ def sigmainv(y):
 def get_mun(epsilon, N, gamma, g, w, smu):
     return (gamma - (1.-gamma)*g)*epsilon*N*w*smu
 
-def get_sigman(epsilon, N, gamma, g, w, sigma):
-    return np.sqrt((gamma + (1.-gamma)*g**2)*epsilon*N*w**2*sigma**2)
+def get_sigman(epsilon, N, gamma, g, w, mu):
+    sigma2 = mu*(1.-mu)
+    return np.sqrt((gamma + (1.-gamma)*g**2)*epsilon*N*w**2*sigma2)
 
 def Fsigma(x, beta=1.):
     return 0 if sigma(x, beta) < np.random.rand() else 1
