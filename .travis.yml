@@ -15,5 +15,10 @@ install:
   - export PYTHONPATH=$PYTHONPATH:.
 script:
   - nosetests --with-coverage
+virtualenv:
+  system_site_packages: true
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev 
 after_success:
   - coveralls
