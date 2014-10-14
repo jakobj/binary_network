@@ -1,5 +1,6 @@
 [report]
 omit =  
+    *scipy.*
     */python?.?/*
     */site-packages/*
     *__init__*
