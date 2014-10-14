@@ -4,18 +4,20 @@ import scipy.optimize as scop
 
 import helper as bhlp
 
-def get_mu_meanfield(epsilon, N, gamma, g, w, b, mu0, cII):
+def get_mu_meanfield(epsilon, N, gamma, g, w, b, mu0, c):
     def f(mu):
-        return mu - scsp.erfc((-b-bhlp.get_mun(epsilon, N, gamma, g, w, mu))/get_sigma_meanfield(epsilon, N, gamma, g, w, mu, cII))
+        h_mu = bhlp.get_mun(epsilon, N, gamma, g, w, mu)
+        h_sigma = get_sigma_input(epsilon, N, gamma, g, w, mu, c)
+        return mu - 0.5*scsp.erfc((-b-h_mu)/(np.sqrt(2.)*h_sigma))
     return scop.fsolve(f, [mu0])[0]
 
-def get_sigma_meanfield(epsilon, N, gamma, g, w, mu, cII):
+def get_sigma_input(epsilon, N, gamma, g, w, mu, cII):
     sigma2 = bhlp.get_variance(mu)
     K = epsilon*N
     return np.sqrt((gamma + (1.-gamma)*g**2)*K*w**2*sigma2+(1.-gamma)*K**2*w**2*g**2*cII)
 
 def get_S(mu, sigma, b):
-    return 1./(np.sqrt(2*np.pi)*sigma)*np.exp(-1.*(mu+b)**2/(2.*sigma**2))
+    return 1./(np.sqrt(2.*np.pi)*sigma)*np.exp(-1.*(mu+b)**2/(2.*sigma**2))
 
 def get_w_meanfield(K, w, h_mu, h_sigma, b):
     return get_S(h_mu, h_sigma, b)*w*K
@@ -54,7 +56,7 @@ def get_m_c_iter(epsilon, N, gamma, g, w, b, mu0):
         c_old = c
         mu = get_mu_meanfield(epsilon, N, gamma, g, w, b, mu, c)
         h_mu = bhlp.get_mun(epsilon, N, gamma, g, w, mu)
-        h_sigma = get_sigma_meanfield(epsilon, N, gamma, g, w, mu, c)
+        h_sigma = get_sigma_input(epsilon, N, gamma, g, w, mu, c)
         c = get_c_meanfield(epsilon, N, gamma, g, w, b, mu, h_mu, h_sigma)
         # import ipdb;ipdb.set_trace()
         Dmu = abs(mu-mu_old)

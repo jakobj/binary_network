@@ -464,54 +464,52 @@ class NetworkTestCase(unittest.TestCase):
         self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)
 
     def test_mu_theo_sigma_theo(self):
-        N = 500
+        N = 10
+        Nnoise = 500
         T = 2e4
-        w = 0.1
+        w = 0.01
         g = 8.
         epsilon = 0.3
         gamma = 0.
         mu_target = 0.15
         tau = 10.
-        Nrec = 30
+        Nrec = 50
 
-        W = np.zeros((N, N))
-        W = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
-        b = np.zeros(N)
-        b += -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
-        sinit = np.array(np.random.randint(0, 2, N), dtype=np.int)
+        W = np.zeros((N+Nnoise, N+Nnoise))
+        W[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
+        W[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
+        b = np.zeros(N+Nnoise)
+        b[:N] = -w/2.
+        b[N:] += -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-w/2.
+        sinit = np.array(np.random.randint(0, 2, N+Nnoise), dtype=np.int)
 
         # times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), T, Nrec, [N], [hlp.theta])
-        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), T, Nrec, [N], [hlp.theta], Nrec_ui=Nrec)
+        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), T, N+Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=N)
         a_ui = a_ui[200:]
         a_s = a_s[200:]
-        mu_noise_activity = np.mean(a_s)
-        std_noise_activity = np.mean(np.std(a_s, axis=0))
 
         # empirical
-        mu_noise = np.mean(a_ui)
-        std_noise = np.mean(np.std(a_ui, axis=0))
+        mu_noise_activity = np.mean(a_s[:,N:])
+        std_noise_activity = np.mean(np.std(a_s[:,N:], axis=0))
+        mu_noise = np.mean(a_ui[:,:N])
+        std_noise = np.mean(np.std(a_ui[:,:N], axis=0))
 
         # naive meanfield
-        mu_theo = bmf.get_mu_meanfield(epsilon, N, gamma, g, w, b[0], mu_target, 0)
+        mu_theo = bmf.get_mu_meanfield(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target, 0)
         std_theo = hlp.get_std(mu_theo)
-        mu_theo_input = hlp.get_mun(epsilon, N, gamma, g, w, mu_theo)-1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
-        std_theo_input = hlp.get_sigman(epsilon, N, gamma, g, w, mu_theo)
+        mu_theo_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_theo)-w/2.
+        std_theo_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_theo)
 
         # improved meanfield
-        mu_iter, c_iter = bmf.get_m_c_iter(epsilon, N, gamma, g, w, b[0], mu_target)
+        mu_iter, c_iter = bmf.get_m_c_iter(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target)
         std_iter = hlp.get_std(mu_iter)
-        mu_iter_input = hlp.get_mun(epsilon, N, gamma, g, w, mu_iter)-1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)-w/2.
-        std_iter_input = bmf.get_sigma_meanfield(epsilon, N, gamma, g, w, mu_iter, c_iter)
+        mu_iter_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_iter)-w/2.
+        std_iter_input = bmf.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_iter, c_iter)
 
-        self.assertAlmostEqual(mu_noise_activity, mu_theo, delta=0.1*mu_theo)
-        self.assertAlmostEqual(std_noise_activity, std_theo, delta=0.1*std_theo)
-        self.assertAlmostEqual(mu_noise, mu_theo_input, delta=abs(0.15*mu_theo_input))
-        self.assertAlmostEqual(std_noise, std_theo_input, delta=abs(0.2*std_theo_input))
-
-        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.02*mu_iter)
-        self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.01*std_iter)
-        self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.01*mu_iter_input))
-        self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.01*std_iter_input))
+        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.03*mu_iter)
+        self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.03*std_iter)
+        self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.03*mu_iter_input))
+        self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.03*std_iter_input))
 
 
 if __name__ == '__main__':
