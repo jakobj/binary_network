@@ -176,11 +176,11 @@ class HelperTestCase(unittest.TestCase):
         xI = -g*w*np.random.normal(smu, sigmas, (steps, KI))
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         expected_mu = np.mean(x)
-        expected_std = np.std(x)
+        expected_sigma = np.std(x)
         mu = hlp.get_mun(epsilon, N, gamma, g, w, smu)
-        self.assertTrue( abs(expected_mu - mu) < 0.05*abs(expected_mu))
-        std = hlp.get_sigman(epsilon, N, gamma, g, w, smu)
-        self.assertTrue( abs(expected_std - std) < 0.05*expected_std)
+        self.assertAlmostEqual(expected_mu, mu, delta=0.02*abs(expected_mu))
+        sigma = hlp.get_sigman(epsilon, N, gamma, g, w, smu)
+        self.assertAlmostEqual(expected_sigma, sigma, delta=0.02*abs(expected_sigma))
 
     def test_Fsigma(self):
         samples = int(5e4)

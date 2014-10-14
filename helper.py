@@ -106,8 +106,8 @@ def sigma(x, beta=1.):
 def sigmainv(y):
     return np.log(1./(1./y - 1.))
 
-def get_mun(epsilon, N, gamma, g, w, smu):
-    return (gamma - (1.-gamma)*g)*epsilon*N*w*smu
+def get_mun(epsilon, N, gamma, g, w, mu):
+    return (gamma - (1.-gamma)*g)*epsilon*N*w*mu
 
 def get_sigman(epsilon, N, gamma, g, w, mu):
     sigma2 = mu*(1.-mu)
