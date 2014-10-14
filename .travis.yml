@@ -8,6 +8,7 @@ branches:
     - master
 install:
   - pip install numpy
+  - pip install scipy
   - pip install python-coveralls
   - pip install nose
   - pip install coverage
