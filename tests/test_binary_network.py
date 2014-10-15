@@ -501,10 +501,20 @@ class NetworkTestCase(unittest.TestCase):
         std_theo_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_theo)
 
         # improved meanfield
-        mu_iter, c_iter = bmf.get_m_c_iter(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target)
+        mu_iter, c_iter, mu_iter_input, std_iter_input = bmf.get_m_c_iter(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target)
         std_iter = hlp.get_std(mu_iter)
-        mu_iter_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_iter)-w/2.
-        std_iter_input = bmf.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_iter, c_iter)
+        # mu_iter_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_iter)-w/2.
+        # std_iter_input = bmf.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_iter, c_iter)
+
+        mu_iter = mu_iter[1]
+        std_iter = std_iter[1]
+        mu_iter_input = mu_iter_input[1]
+        std_iter_input = std_iter_input[1]
+
+        # self.assertAlmostEqual(mu_noise_activity, mu_theo, delta=0.1*mu_theo)
+        # self.assertAlmostEqual(std_noise_activity, std_theo, delta=0.1*std_theo)
+        # self.assertAlmostEqual(mu_noise, mu_theo_input, delta=abs(0.2*mu_theo_input))
+        # self.assertAlmostEqual(std_noise, std_theo_input, delta=abs(0.2*std_theo_input))
 
         self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.03*mu_iter)
         self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.03*std_iter)
