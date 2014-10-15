@@ -500,7 +500,9 @@ class NetworkTestCase(unittest.TestCase):
 
         mfcl = bmf.binary_meanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]).T)
         # naive meanfield
-        mu_theo, mu_theo_input, std_theo_input = mfcl.get_m(np.array([0.2,0.2]).T)
+        mu_theo = mfcl.get_m(np.array([0.2,0.2]).T)
+        mu_theo_input = mfcl.get_mu_input(mu_theo)
+        std_theo_input = mfcl.get_sigma_input(mu_theo)
         # mu_theo = bmf.get_mu_meanfield(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target, 0)
         std_theo = hlp.get_std(mu_theo)
         # mu_theo_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_theo)-w/2.
@@ -512,7 +514,9 @@ class NetworkTestCase(unittest.TestCase):
         std_theo_input = std_theo_input[1]
 
         # improved meanfield
-        mu_iter, c_iter, mu_iter_input, std_iter_input = mfcl.get_m_c_iter(np.array([0.2,0.2]).T)
+        mu_iter, c_iter = mfcl.get_m_c_iter(np.array([0.2,0.2]).T)
+        mu_iter_input = mfcl.get_mu_input(mu_iter)
+        std_iter_input = mfcl.get_sigma_input(mu_iter, c_iter)
         # mu_iter, c_iter, mu_iter_input, std_iter_input = bmf.get_m_c_iter(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target)
         std_iter = hlp.get_std(mu_iter)
         # mu_iter_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_iter)-w/2.

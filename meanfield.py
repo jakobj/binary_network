@@ -20,34 +20,48 @@ class binary_meanfield:
                            [0., 0.]])
         self.mu = np.array([0., 0.])
 
-    def get_mu_meanfield(self, mu0, C):
+
+    def get_mu_meanfield(self, mu0, C=None):
+        if C is None:
+            C = np.array([[0., 0.],
+                          [0., 0.]])
         def f(mu):
             h_mu = self.get_mu_input(mu)
             h_sigma = self.get_sigma_input(mu, C)
             return mu - 0.5*scsp.erfc((-self.b-h_mu)/(np.sqrt(2.)*h_sigma))
         return scop.fsolve(f, mu0)
 
+
     def get_mu_input(self, mu):
         return np.dot(self.K*self.J, mu)
 
-    def get_sigma_input(self, mu, C):
+
+    def get_sigma_input(self, mu, C=None):
+        if C is None:
+            C = np.array([[0., 0.],
+                          [0., 0.]])
         a = bhlp.get_variance(mu)
         sigma_shared = np.dot(self.K*self.J*self.J, a)
         sigma_corr = np.diag( np.dot( np.dot(self.K*self.J, C), (self.K*self.J).T) )
         return np.sqrt(sigma_shared + sigma_corr)
 
+
     def get_suszeptibility(self, mu, sigma):
         return 1./(np.sqrt(2.*np.pi)*sigma) * np.exp(-1.*(mu+self.b)**2 / (2.*sigma**2))
 
-    def get_w_meanfield(self, h_mu, h_sigma):
+
+    def get_w_meanfield(self, mu, C):
+        h_mu = self.get_mu_input(mu)
+        h_sigma = self.get_sigma_input(mu, C)
         return ((self.K*self.J).T*self.get_suszeptibility(h_mu, h_sigma)).T
 
-    def get_c_meanfield(self, mu, h_mu, h_sigma):
+
+    def get_c_meanfield(self, mu, C):
         a = bhlp.get_variance(mu)
         A = np.zeros(2)
         A[0] = a[0] * 1./self.NE if self.NE > 0 else 0.
         A[1] = a[1] * 1./self.NI if self.NI > 0 else 0.
-        W = self.get_w_meanfield(h_mu, h_sigma)
+        W = self.get_w_meanfield(mu, C)
         M = np.array([[2.-2.*W[0,0], -2.*W[0,1], 0.],
                       [-1.*W[1,0], 2.-(W[0,0]+W[1,1]), -1.*W[0,1]],
                       [0, -2.*W[1,0], 2.-2.*W[1,1]]])
@@ -74,14 +88,12 @@ class binary_meanfield:
             mu_old = np.sum(mu)
             c_old = np.sum(C)
             mu = self.get_mu_meanfield(mu, C)
-            h_mu = self.get_mu_input(mu)
-            h_sigma = self.get_sigma_input(mu, C)
-            C = self.get_c_meanfield(mu, h_mu, h_sigma)
+            C = self.get_c_meanfield(mu, C)
             Dmu = abs(np.sum(mu)-mu_old)
             Dc = abs(np.sum(C)-c_old)
         self.mu = mu
         self.C = C
-        return mu, C, h_mu, h_sigma
+        return mu, C
 
 
     def get_m(self, mu0):
@@ -89,9 +101,5 @@ class binary_meanfield:
         network using meanfield approach
         """
         mu = mu0
-        C = np.array([[0., 0.],
-                      [0., 0.]])
-        mu = self.get_mu_meanfield(mu, C)
-        h_mu = self.get_mu_input(mu)
-        h_sigma = self.get_sigma_input(mu, C)
-        return mu, h_mu, h_sigma
+        mu = self.get_mu_meanfield(mu)
+        return mu
