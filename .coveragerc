@@ -1,6 +1,6 @@
 [report]
 omit =  
-    *scipy.*
+    *pyshared/scipy*
     */python?.?/*
     */site-packages/*
     *__init__*
