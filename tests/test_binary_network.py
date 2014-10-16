@@ -308,7 +308,7 @@ class NetworkTestCase(unittest.TestCase):
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
         b_brn = -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
-        self.assertAlmostEqual(mu_target, np.mean(a_s_brn), places=1)
+        self.assertAlmostEqual(mu_target, np.mean(a_s_brn), delta=0.1*np.mean(a_s_brn))
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
         timelag_brn, autof_brn = hlp.autocorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
@@ -318,7 +318,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N)*hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
-        self.assertAlmostEqual(mu_target, np.mean(a_s), places=2)
+        self.assertAlmostEqual(mu_target, np.mean(a_s), delta=0.1*np.mean(a_s))
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
         timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
@@ -590,10 +590,10 @@ class MeanfieldTestCase(unittest.TestCase):
         self.assertAlmostEqual(mu_noise, mu_naive_input, delta=abs(0.2*mu_naive_input))
         self.assertAlmostEqual(std_noise, std_naive_input, delta=abs(0.2*std_naive_input))
 
-        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.03*mu_iter)
-        self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.03*std_iter)
-        self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.03*mu_iter_input))
-        self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.03*std_iter_input))
+        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.04*mu_iter)
+        self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.04*std_iter)
+        self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.04*mu_iter_input))
+        self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.04*std_iter_input))
 
 
 if __name__ == '__main__':
