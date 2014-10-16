@@ -429,7 +429,7 @@ class MeanfieldTestCase(unittest.TestCase):
         self.KI = int(epsilon*self.NI)
         self.mu = np.array([0.6, 0.5])
         self.sigma = np.array([0.35, 0.73])
-        self.mfi = bmf.binary_meanfield(epsilon, N, gamma, self.g, self.w, self.b)
+        self.mfi = bmf.BinaryMeanfield(epsilon, N, gamma, self.g, self.w, self.b)
 
     def test_get_mu_input(self):
         expected_mu_input = self.KE*self.w*self.mu[0]+self.KI*(-self.g*self.w)*self.mu[1]
@@ -484,7 +484,7 @@ class MeanfieldTestCase(unittest.TestCase):
         g = 8.
         w = 0.35
         b = np.array([0., 0.9])
-        mfi = bmf.binary_meanfield(epsilon, N, gamma, g, w, b)
+        mfi = bmf.BinaryMeanfield(epsilon, N, gamma, g, w, b)
         mu = mfi.get_mu_meanfield(np.array([0.5, 0.5]))
         wII = mfi.get_w_meanfield(mu)[1,1]
         AI = hlp.get_sigma2(mu)[1]/N
@@ -523,7 +523,7 @@ class MeanfieldTestCase(unittest.TestCase):
         std_noise = np.mean(np.std(a_ui[:,:N], axis=0))
 
         # meanfield
-        mfcl = bmf.binary_meanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]))
+        mfcl = bmf.BinaryMeanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]))
         # naive
         mu_naive = mfcl.get_m(np.array([0.2,0.2]).T)
         std_naive = hlp.get_sigma(mu_naive)[1]

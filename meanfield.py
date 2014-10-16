@@ -12,7 +12,7 @@ PLoS Comput Biol 10(1): e1003428
 DOI: 10.1371/journal.pcbi.1003428
 """
 
-class binary_meanfield(object):
+class BinaryMeanfield(object):
     """
     this module can calculate the stationary firing rate and mean
     correlations in a network of binary neurons with an excitatory
