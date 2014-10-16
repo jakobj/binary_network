@@ -8,6 +8,7 @@ import meanfield as bmf
 
 np.random.seed(123456)
 
+
 class HelperTestCase(unittest.TestCase):
 
     def test_BM_weight_matrix(self):
@@ -62,13 +63,13 @@ class HelperTestCase(unittest.TestCase):
             self.assertAlmostEqual(np.sum(l[l < 0]), -1.*epsilon*NInoise*w*g)
             self.assertAlmostEqual(1.*len(l[l > 0])/len(l[l < 0]), gamma/(1.-gamma))
 
-    def test_get_E(self):
+    def test_get_energy(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
         s = np.array([1,0])
-        expected_E = -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
-        E = hlp.get_E(W, b, s)
-        self.assertAlmostEqual(expected_E, E)
+        expected_energy = -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
+        energy = hlp.get_energy(W, b, s)
+        self.assertAlmostEqual(expected_energy, energy)
 
     def test_get_theo_joints(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -78,7 +79,7 @@ class HelperTestCase(unittest.TestCase):
         expected_joints = []
         states = hlp.get_states(N)
         for s in states:
-            expected_joints.append(np.exp(-1.*beta*hlp.get_E(W, b, s)))
+            expected_joints.append(np.exp(-1.*beta*hlp.get_energy(W, b, s)))
         expected_joints = 1.*np.array(expected_joints)/np.sum(expected_joints)
         joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints)
@@ -92,12 +93,12 @@ class HelperTestCase(unittest.TestCase):
         states = hlp.get_states(N)
         Z = 0
         for s in states:
-            Z += np.exp(-1.*beta*hlp.get_E(W, b, s))
+            Z += np.exp(-1.*beta*hlp.get_energy(W, b, s))
         for i in range(2):
             statesi = states[states[:,i] == 1]
             p = 0
             for s in statesi:
-                p += np.exp(-1.*beta*hlp.get_E(W, b, s))
+                p += np.exp(-1.*beta*hlp.get_energy(W, b, s))
             expected_marginals.append(1./Z*p)
         marginals = hlp.get_theo_marginals(W, b, beta)
         nptest.assert_array_almost_equal(expected_marginals, marginals)
@@ -112,9 +113,9 @@ class HelperTestCase(unittest.TestCase):
         mu = 0.2
         expected_variance = mu*(1.-mu)
         expected_std = np.sqrt(expected_variance)
-        variance = hlp.get_variance(mu)
+        variance = hlp.get_sigma2(mu)
         self.assertAlmostEqual(expected_variance, variance)
-        std = hlp.get_std(mu)
+        std = hlp.get_sigma(mu)
         self.assertAlmostEqual(expected_std, std)
 
     def test_get_joints(self):
@@ -152,9 +153,10 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_y, y)
 
     def test_sigmainv(self):
+        beta = 0.781
         expected_x = np.random.rand(int(1e2))
-        y = hlp.sigma(expected_x)
-        x = hlp.sigmainv(y)
+        y = hlp.sigma(expected_x, beta)
+        x = hlp.sigmainv(y, beta)
         nptest.assert_array_almost_equal(expected_x, x)
 
     def test_mun_sigman(self):
@@ -168,15 +170,15 @@ class HelperTestCase(unittest.TestCase):
         steps = int(1e5)
         KE = int(gamma*K)
         KI = K-KE
-        sigmas = hlp.get_std(smu)
+        sigmas = hlp.get_sigma(smu)
         xE = w*np.random.normal(smu, sigmas, (steps, KE))
         xI = -g*w*np.random.normal(smu, sigmas, (steps, KI))
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         expected_mu = np.mean(x)
         expected_sigma = np.std(x)
-        mu = hlp.get_mun(epsilon, N, gamma, g, w, smu)
+        mu = hlp.get_mu_input(epsilon, N, gamma, g, w, smu)
         self.assertAlmostEqual(expected_mu, mu, delta=0.02*abs(expected_mu))
-        sigma = hlp.get_sigman(epsilon, N, gamma, g, w, smu)
+        sigma = hlp.get_sigma_input(epsilon, N, gamma, g, w, smu)
         self.assertAlmostEqual(expected_sigma, sigma, delta=0.02*abs(expected_sigma))
 
     def test_Fsigma(self):
@@ -191,8 +193,8 @@ class HelperTestCase(unittest.TestCase):
 
     def test_beta_sigma_noise(self):
         beta_expected = 1.781
-        sigma = hlp.get_sigma_noise(beta_expected)
-        beta = hlp.get_beta_noise(sigma)
+        sigma = hlp.get_sigma_input_from_beta(beta_expected)
+        beta = hlp.get_beta_from_sigma_input(sigma)
         self.assertAlmostEqual(beta_expected, beta)
 
 
@@ -207,7 +209,7 @@ class NetworkTestCase(unittest.TestCase):
         Nrec = 20
         steps = 2e5
         expected_mean = 1./(1.+np.exp(-b[0]))
-        expected_variance = hlp.get_variance(expected_mean)
+        expected_variance = hlp.get_sigma2(expected_mean)
         for i,sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
                 a_states, a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])
@@ -312,7 +314,7 @@ class NetworkTestCase(unittest.TestCase):
         gamma = 0.
         epsilon = 0.2
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
-        b_brn = -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        b_brn = -1.*hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         self.assertAlmostEqual(mu_target, np.mean(a_s_brn), delta=0.1*np.mean(a_s_brn))
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
@@ -353,7 +355,7 @@ class NetworkTestCase(unittest.TestCase):
         gamma = 0.
         epsilon = 0.3
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
-        b_brn = -1.*hlp.get_mun(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
+        b_brn = -1.*hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
         a_times_brn, a_s_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         self.assertTrue( abs(np.mean(a_s_brn) - mu_target) < 0.1*mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
@@ -387,8 +389,8 @@ class NetworkTestCase(unittest.TestCase):
         g = 8.
         gamma = 0.
         epsilon = 0.3
-        expected_mu_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)
-        expected_std_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_target)
+        expected_mu_input = hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target)
+        expected_std_input = hlp.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_target)
 
         # Network case (correlated sources)
         W_brn = np.zeros((N+Nnoise, N+Nnoise))
@@ -396,7 +398,7 @@ class NetworkTestCase(unittest.TestCase):
         W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
         b_brn = np.zeros(N+Nnoise)
         b_brn[:N] = -w/2.
-        b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2
+        b_brn[N:] = -1.*hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2
         a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - expected_mu_input) < 0.05*abs(expected_mu_input))
         self.assertTrue( (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input) < 0)
@@ -410,61 +412,6 @@ class NetworkTestCase(unittest.TestCase):
         a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N,N+Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=10)
         self.assertTrue( abs(np.mean(a_ui)+w/2. - expected_mu_input) < 0.04*abs(expected_mu_input))
         self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input)< 0.04*expected_std_input)
-
-    def test_calibrate(self):
-        N = 20
-        Nnoise = 120
-        tau = 10.
-        time = 10e3
-        beta = 1.
-        mu_target = 0.41
-        mu_noise_target = -1.8
-        std_noise_target = 8./(np.pi*beta**2)
-        tbin = 0.8
-        tmax = 500.
-
-        Nact = int(mu_target*(N+Nnoise))
-        sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
-        w = 0.2
-        g = 8.
-        gamma = 0.
-        epsilon = 0.3
-
-        # Network case (correlated sources)
-        w_adj, b_adj = hlp.calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target)
-
-        W_brn = np.empty((N+Nnoise, N+Nnoise))
-        W_brn[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w_adj, epsilon)
-        W_brn[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
-        b_brn = np.zeros(N+Nnoise)
-        b_brn[:N] = -w_adj/2.+b_adj
-        b_brn[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
-        a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, N+10, [N+Nnoise], [hlp.theta], Nrec_ui=N)
-        self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - mu_noise_target) < 0.1*abs(mu_noise_target) )
-        self.assertTrue( abs(np.mean(np.std(a_ui_brn, axis=0)) - std_noise_target)< 0.1*std_noise_target )
-
-        times_u_brn, u_brn = hlp.bin_binary_data(a_times_ui_brn, a_ui_brn, tbin, time)
-        timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_u_brn, u_brn, tmax)
-        self.assertTrue( abs(np.max(autof_brn) - std_noise_target**2) < 0.1*std_noise_target**2)
-        self.assertTrue( abs(np.max(autof_brn) - np.mean(np.std(a_ui_brn, axis=0))**2) < 0.01*np.mean(np.std(a_ui_brn, axis=0))**2)
-        self.assertTrue( np.max(crossf_brn)/np.max(autof_brn) < 0.2*epsilon)
-
-        # Poisson case (indendendent sources)
-        w_adj, b_adj = hlp.calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target)
-
-        W = np.empty((N+Nnoise, N+Nnoise))
-        W[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w_adj, epsilon)
-        b = np.zeros(N+Nnoise)
-        b[:N] = -w_adj/2.+b_adj
-        b[N:] = hlp.sigmainv(mu_target)
-        a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, 0, [N, N+Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=N)
-        self.assertTrue( abs(np.mean(a_ui)+w/2. - mu_noise_target) < 0.05*abs(mu_noise_target) )
-        self.assertTrue( abs(np.mean(np.std(a_ui, axis=0)) - std_noise_target)< 0.05*std_noise_target )
-
-        times_u, u = hlp.bin_binary_data(a_times_ui, a_ui, tbin, time)
-        timelag, autof, crossf = hlp.crosscorrf(times_u, u, tmax)
-        self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
-        self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)
 
 
 class MeanfieldTestCase(unittest.TestCase):
@@ -540,7 +487,7 @@ class MeanfieldTestCase(unittest.TestCase):
         mfi = bmf.binary_meanfield(epsilon, N, gamma, g, w, b)
         mu = mfi.get_mu_meanfield(np.array([0.5, 0.5]))
         wII = mfi.get_w_meanfield(mu)[1,1]
-        AI = hlp.get_variance(mu)[1]/N
+        AI = hlp.get_sigma2(mu)[1]/N
         expected_CII = wII/(1.-wII)*AI
         C = mfi.get_c_meanfield(mu)
         self.assertAlmostEqual(expected_CII, C[1, 1])
@@ -562,7 +509,7 @@ class MeanfieldTestCase(unittest.TestCase):
         W[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
         b = np.zeros(N+Nnoise)
         b[:N] = -w/2.
-        b[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-w/2.
+        b[N:] = -1.*hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target)-w/2.
         sinit = np.array(np.random.randint(0, 2, N+Nnoise), dtype=np.int)
 
         times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit, T, N+Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=N)
@@ -579,14 +526,14 @@ class MeanfieldTestCase(unittest.TestCase):
         mfcl = bmf.binary_meanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]))
         # naive
         mu_naive = mfcl.get_m(np.array([0.2,0.2]).T)
-        std_naive = hlp.get_std(mu_naive)[1]
+        std_naive = hlp.get_sigma(mu_naive)[1]
         mu_naive_input = mfcl.get_mu_input(mu_naive)[1]
         std_naive_input = mfcl.get_sigma_input(mu_naive)[1]
         mu_naive = mu_naive[1]
 
         # improved (i.e., with correlations)
         mu_iter, c_iter = mfcl.get_m_c_iter(np.array([0.2,0.2]).T)
-        std_iter = hlp.get_std(mu_iter)[1]
+        std_iter = hlp.get_sigma(mu_iter)[1]
         mu_iter_input = mfcl.get_mu_input(mu_iter)[1]
         std_iter_input = mfcl.get_sigma_input(mu_iter, c_iter)[1]
         mu_iter = mu_iter[1]

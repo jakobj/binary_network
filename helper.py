@@ -5,7 +5,7 @@ from collections import defaultdict
 import network as bnet
 
 def create_BM_weight_matrix(N):
-    W = 2.*(np.random.rand(N,N)-0.5)
+    W = 2.*(np.random.rand(N, N)-0.5)
     for i in range(N):
         for j in range(i):
             W[j, i] = W[i, j]
@@ -34,20 +34,20 @@ def create_connectivity_matrix(N, w, g, epsilon, gamma):
             W[i, indI] = -g*w
     return W
 
-def create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon):
-    W = np.zeros((N, Nnoise))
+def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
+    W = np.zeros((Nbm, Nnoise))
     NE = int(gamma*Nnoise)
-    NI = Nnoise-NE
+    NI = int(Nnoise-NE)
     KE = int(epsilon*NE)
     KI = int(epsilon*NI)
-    for l in range(N):
+    for l in range(Nbm):
         indE = np.random.permutation(np.arange(0, NE))[:KE]
         W[l, indE] = w
         indI = np.random.permutation(np.arange(NE, Nnoise))[:KI]
         W[l, indI] = -g*w
     return W
 
-def get_E(W, b, s):
+def get_energy(W, b, s):
     return -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
 
 def get_states(N):
@@ -67,20 +67,20 @@ def get_theo_joints(W, b, beta):
     p = []
     states = get_states(N)
     for state in states:
-        p.append(np.exp(-1.*beta*get_E(np.array(W), np.array(b), np.array(state))))
+        p.append(np.exp(-1.*beta*get_energy(np.array(W), np.array(b), np.array(state))))
     return 1.*np.array(p)/np.sum(p)
 
-def get_variance(mu):
+def get_sigma2(mu):
     return mu*(1.-mu)
 
-def get_std(mu):
-    return np.sqrt(get_variance(mu))
+def get_sigma(mu):
+    return np.sqrt(get_sigma2(mu))
 
-def get_sigma_noise(beta):
+def get_sigma_input_from_beta(beta):
     return np.sqrt(8./(np.pi*beta**2))
 
-def get_beta_noise(sigma):
-    return 4./np.sqrt(2.*np.pi*sigma**2)
+def get_beta_from_sigma_input(sigma_input):
+    return 4./np.sqrt(2.*np.pi*sigma_input**2)
 
 def get_joints(a_s, steps_warmup):
     steps_tot = len(a_s[steps_warmup:])
@@ -109,22 +109,22 @@ def theta(x, beta=1.):
 def sigma(x, beta=1.):
     return 1./(1. + np.exp(-beta*x))
 
-def sigmainv(y):
-    return np.log(1./(1./y - 1.))
+def sigmainv(y, beta=1.):
+    return 1./beta*np.log(1./(1./y - 1.))
 
-def get_mun(epsilon, N, gamma, g, w, mu):
+def get_mu_input(epsilon, N, gamma, g, w, mu):
     return (gamma - (1.-gamma)*g)*epsilon*N*w*mu
 
-def get_sigman(epsilon, N, gamma, g, w, mu):
-    sigma2 = mu*(1.-mu)
+def get_sigma_input(epsilon, N, gamma, g, w, mu):
+    sigma2 = get_sigma2(mu)
     return np.sqrt((gamma + (1.-gamma)*g**2)*epsilon*N*w**2*sigma2)
 
 def Fsigma(x, beta=1.):
     return 0 if sigma(x, beta) < np.random.rand() else 1
 
-def bin_binary_data(times, a_states, tbin, time):
+def bin_binary_data(times, a_states, tbin, tmax):
     a_s = a_states.T.copy()
-    times_bin = np.arange(0., time+tbin, tbin)
+    times_bin = np.arange(0., tmax+tbin, tbin)
     st = np.zeros((len(a_s), len(times_bin)))
     Ntimes = len(times)
     for j,s in enumerate(a_s):
@@ -150,34 +150,3 @@ def crosscorrf(times_bin, st, tmax):
     times_autof, mu_autof = autocorrf(times_bin, st, tmax)
     mu_crossf = 1./(N*(N-1))*(cauto-1.*N*mu_autof)
     return times_autof, mu_autof, mu_crossf
-
-def calibrate_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
-    Nrec = N+np.min([Nnoise, 120])
-    W = np.zeros((N+Nnoise, N+Nnoise))
-    W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
-    W[N:,N:] = create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
-    b = np.zeros(N+Nnoise)
-    b[:N] = -w/2.
-    b[N:] = -1.*get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2.
-    Nact = int(mu_target*(N+Nnoise))
-    sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
-    a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N+Nnoise], [theta], Nrec_ui=N)
-    std_input = np.mean(np.std(a_ui, axis=0))
-    w_adj = w*std_noise_target/std_input
-    b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
-    return w_adj, b_adj
-
-def calibrate_poisson_noise(N, Nnoise, epsilon, gamma, g, w, tau, time, mu_target, mu_noise_target, std_noise_target):
-    Nrec = N+np.min([Nnoise, 120])
-    W = np.zeros((N+Nnoise, N+Nnoise))
-    W[:N,N:] = create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
-    b = np.zeros(N+Nnoise)
-    b[:N] = -w/2.
-    b[N:] = sigmainv(mu_target)
-    Nact = int(mu_target*(N+Nnoise))
-    sinit = np.random.permutation(np.hstack([np.ones(Nact), np.zeros(N+Nnoise-Nact)]))
-    a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), time, Nrec, [N, N+Nnoise], [theta, Fsigma], Nrec_ui=N)
-    std_input = np.mean(np.std(a_ui, axis=0))
-    w_adj = w*std_noise_target/std_input
-    b_adj = mu_noise_target-1.*get_mun(epsilon, Nnoise, gamma, g, w_adj, np.mean(a_s[:,N:]))
-    return w_adj, b_adj
