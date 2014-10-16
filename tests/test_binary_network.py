@@ -189,6 +189,12 @@ class HelperTestCase(unittest.TestCase):
         y = np.mean(y)
         nptest.assert_array_almost_equal(expected_y, y, decimal=2)
 
+    def test_beta_sigma_noise(self):
+        beta_expected = 1.781
+        sigma = hlp.get_sigma_noise(beta_expected)
+        beta = hlp.get_beta_noise(sigma)
+        self.assertAlmostEqual(beta_expected, beta)
+
 
 class NetworkTestCase(unittest.TestCase):
 

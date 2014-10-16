@@ -76,6 +76,12 @@ def get_variance(mu):
 def get_std(mu):
     return np.sqrt(get_variance(mu))
 
+def get_sigma_noise(beta):
+    return np.sqrt(8./(np.pi*beta**2))
+
+def get_beta_noise(sigma):
+    return 4./np.sqrt(2.*np.pi*sigma**2)
+
 def get_joints(a_s, steps_warmup):
     steps_tot = len(a_s[steps_warmup:])
     states = defaultdict(int)
