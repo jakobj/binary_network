@@ -1,7 +1,8 @@
 import numpy as np
 import heapq as hq
 
-def simulate(W, b, sinit, steps, Nrec, l_N, l_F, record_ui=False, Nrec_ui=None, beta=1.):
+def simulate(W, b, sinit, steps, Nrec, l_N, l_F, Nrec_ui=None, beta=1.):
+    record_ui = True if Nrec_ui > 0 else False
     N = len(b)
     s = sinit
     step = 1

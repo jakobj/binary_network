@@ -60,7 +60,7 @@ class binary_meanfield(object):
 
     def get_sigma_input(self, mu, C=None):
         """
-        Standard deviation of input given presynaptic activity
+        Standard deviation of input given presynaptic activity mu
         (and correlations C)
         For C=None: formula (6) in Helias14
         For C: formula (13) in Helias14
@@ -83,7 +83,7 @@ class binary_meanfield(object):
         return 1./(np.sqrt(2.*np.pi)*sigma) * np.exp(-1.*(mu+self.b)**2 / (2.*sigma**2))
 
 
-    def get_w_meanfield(self, mu, C):
+    def get_w_meanfield(self, mu, C=None):
         """
         Linearized population averaged weights
         Formula (10) in Helias14
@@ -93,7 +93,7 @@ class binary_meanfield(object):
         return ((self.K*self.J).T*self.get_suszeptibility(h_mu, h_sigma)).T
 
 
-    def get_c_meanfield(self, mu, C):
+    def get_c_meanfield(self, mu, C=None):
         """
         Self-consistent correlations
         Formula (24) without external input in Helias14

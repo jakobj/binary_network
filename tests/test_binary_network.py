@@ -10,9 +10,6 @@ np.random.seed(123456)
 
 class HelperTestCase(unittest.TestCase):
 
-    # def setUp(self):
-    # def tearDown(self):
-
     def test_BM_weight_matrix(self):
         N = 10
         expected_diag = np.zeros(N)
@@ -463,14 +460,93 @@ class NetworkTestCase(unittest.TestCase):
         self.assertTrue( abs(np.max(autof) - std_noise_target**2) < 0.05*std_noise_target**2)
         self.assertTrue( abs(np.max(crossf)/np.max(autof) - epsilon) < 0.1*epsilon)
 
-    def test_mu_theo_sigma_theo(self):
+
+class MeanfieldTestCase(unittest.TestCase):
+
+    def setUp(self):
+        epsilon = 0.1
+        N = 100
+        gamma = 0.2
+        self.g = 8.
+        self.w = 0.35
+        self.b = np.array([0.7, 0.9])
+        self.NE = int(gamma*N)
+        self.NI = N-self.NE
+        self.KE = int(epsilon*self.NE)
+        self.KI = int(epsilon*self.NI)
+        self.mu = np.array([0.6, 0.5])
+        self.sigma = np.array([0.35, 0.73])
+        self.mfi = bmf.binary_meanfield(epsilon, N, gamma, self.g, self.w, self.b)
+
+    def test_get_mu_input(self):
+        expected_mu_input = self.KE*self.w*self.mu[0]+self.KI*(-self.g*self.w)*self.mu[1]
+        mu_input = self.mfi.get_mu_input(self.mu)
+        self.assertAlmostEqual(expected_mu_input, mu_input[0])
+        self.assertAlmostEqual(expected_mu_input, mu_input[1])
+
+    def test_get_sigma_input(self):
+        CEE = 0.003
+        CIE = CEI = 0.1
+        CII = -0.003
+        sigma_input = self.mfi.get_sigma_input(self.mu)
+        expected_sigma_input = np.sqrt(self.KE*self.w**2*self.mu[0]*(1.-self.mu[0])+self.KI*(-self.g*self.w)**2*self.mu[1]*(1.-self.mu[1]))
+        self.assertAlmostEqual(expected_sigma_input, sigma_input[0])
+        self.assertAlmostEqual(expected_sigma_input, sigma_input[1])
+        C = np.array([[CEE, CIE],
+                      [CEI, CII]])
+        sigma_input = self.mfi.get_sigma_input(self.mu, C)
+        expected_sigma_input = np.sqrt(
+            self.KE*self.w**2*self.mu[0]*(1.-self.mu[0])+self.KI*(-self.g*self.w)**2*self.mu[1]*(1.-self.mu[1])
+            +(self.KE*self.w)**2*CEE+2.*self.KE*self.KI*(-self.g*self.w**2)*CEI+(self.KI*(-self.g*self.w))**2*CII)
+        self.assertAlmostEqual(expected_sigma_input, sigma_input[0])
+        self.assertAlmostEqual(expected_sigma_input, sigma_input[1])
+
+    def test_get_suszeptibility(self):
+        mu_input = self.mfi.get_mu_input(self.mu)
+        sigma_input = self.mfi.get_sigma_input(self.mu)
+        expected_S0 = 1./(np.sqrt(2.*np.pi)*sigma_input[0])*np.exp(-(mu_input[0]+self.b[0])**2/(2.*sigma_input[0]**2))
+        expected_S1 = 1./(np.sqrt(2.*np.pi)*sigma_input[1])*np.exp(-(mu_input[1]+self.b[1])**2/(2.*sigma_input[1]**2))
+        S = self.mfi.get_suszeptibility(mu_input, sigma_input)
+        self.assertAlmostEqual(expected_S0, S[0])
+        self.assertAlmostEqual(expected_S1, S[1])
+
+    def test_get_w_meanfield(self):
+        mu_input = self.mfi.get_mu_input(self.mu)
+        sigma_input = self.mfi.get_sigma_input(self.mu)
+        S = self.mfi.get_suszeptibility(mu_input, sigma_input)
+        expected_w00 = self.KE*self.w*S[0]
+        expected_w01 = self.KI*(-self.g*self.w)*S[0]
+        expected_w10 = self.KE*self.w*S[1]
+        expected_w11 = self.KI*(-self.g*self.w)*S[1]
+        W = self.mfi.get_w_meanfield(self.mu)
+        self.assertAlmostEqual(expected_w00, W[0,0])
+        self.assertAlmostEqual(expected_w01, W[0,1])
+        self.assertAlmostEqual(expected_w10, W[1,0])
+        self.assertAlmostEqual(expected_w11, W[1,1])
+
+    def test_c_meanfield(self):
+        epsilon = 0.1
+        N = 100.
+        gamma = 0.
+        g = 8.
+        w = 0.35
+        b = np.array([0., 0.9])
+        mfi = bmf.binary_meanfield(epsilon, N, gamma, g, w, b)
+        mu = mfi.get_mu_meanfield(np.array([0.5, 0.5]))
+        wII = mfi.get_w_meanfield(mu)[1,1]
+        AI = hlp.get_variance(mu)[1]/N
+        expected_CII = wII/(1.-wII)*AI
+        C = mfi.get_c_meanfield(mu)
+        self.assertAlmostEqual(expected_CII, C[1, 1])
+
+    def test_comp_network_meanfield(self):
         N = 10
         Nnoise = 500
-        T = 2e4
-        w = 0.01
+        T = 1e4
+        w = 0.1
         g = 8.
         epsilon = 0.3
-        gamma = 0.
+        gamma = 0.2
         mu_target = 0.15
         tau = 10.
         Nrec = 50
@@ -480,11 +556,10 @@ class NetworkTestCase(unittest.TestCase):
         W[N:,N:] = hlp.create_connectivity_matrix(Nnoise, w, g, epsilon, gamma)
         b = np.zeros(N+Nnoise)
         b[:N] = -w/2.
-        b[N:] += -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-w/2.
+        b[N:] = -1.*hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-w/2.
         sinit = np.array(np.random.randint(0, 2, N+Nnoise), dtype=np.int)
 
-        # times, a_s = bnet.simulate_eve(W, b, tau, sinit.copy(), T, Nrec, [N], [hlp.theta])
-        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit.copy(), T, N+Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=N)
+        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(W, b, tau, sinit, T, N+Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=N)
         a_ui = a_ui[200:]
         a_s = a_s[200:]
 
@@ -494,43 +569,26 @@ class NetworkTestCase(unittest.TestCase):
         mu_noise = np.mean(a_ui[:,:N])
         std_noise = np.mean(np.std(a_ui[:,:N], axis=0))
 
-        # from target rate
-        mu_target_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_target)-w/.2
-        std_target_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_target)
+        # meanfield
+        mfcl = bmf.binary_meanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]))
+        # naive
+        mu_naive = mfcl.get_m(np.array([0.2,0.2]).T)
+        std_naive = hlp.get_std(mu_naive)[1]
+        mu_naive_input = mfcl.get_mu_input(mu_naive)[1]
+        std_naive_input = mfcl.get_sigma_input(mu_naive)[1]
+        mu_naive = mu_naive[1]
 
-        mfcl = bmf.binary_meanfield(epsilon, Nnoise, gamma, g, w, np.array([b[N+1], b[N+1]]).T)
-        # naive meanfield
-        mu_theo = mfcl.get_m(np.array([0.2,0.2]).T)
-        mu_theo_input = mfcl.get_mu_input(mu_theo)
-        std_theo_input = mfcl.get_sigma_input(mu_theo)
-        # mu_theo = bmf.get_mu_meanfield(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target, 0)
-        std_theo = hlp.get_std(mu_theo)
-        # mu_theo_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_theo)-w/2.
-        # std_theo_input = hlp.get_sigman(epsilon, Nnoise, gamma, g, w, mu_theo)
-
-        mu_theo = mu_theo[1]
-        std_theo = std_theo[1]
-        mu_theo_input = mu_theo_input[1]
-        std_theo_input = std_theo_input[1]
-
-        # improved meanfield
+        # improved (i.e., with correlations)
         mu_iter, c_iter = mfcl.get_m_c_iter(np.array([0.2,0.2]).T)
-        mu_iter_input = mfcl.get_mu_input(mu_iter)
-        std_iter_input = mfcl.get_sigma_input(mu_iter, c_iter)
-        # mu_iter, c_iter, mu_iter_input, std_iter_input = bmf.get_m_c_iter(epsilon, Nnoise, gamma, g, w, b[N+1], mu_target)
-        std_iter = hlp.get_std(mu_iter)
-        # mu_iter_input = hlp.get_mun(epsilon, Nnoise, gamma, g, w, mu_iter)-w/2.
-        # std_iter_input = bmf.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_iter, c_iter)
-
+        std_iter = hlp.get_std(mu_iter)[1]
+        mu_iter_input = mfcl.get_mu_input(mu_iter)[1]
+        std_iter_input = mfcl.get_sigma_input(mu_iter, c_iter)[1]
         mu_iter = mu_iter[1]
-        std_iter = std_iter[1]
-        mu_iter_input = mu_iter_input[1]
-        std_iter_input = std_iter_input[1]
 
-        # self.assertAlmostEqual(mu_noise_activity, mu_theo, delta=0.1*mu_theo)
-        # self.assertAlmostEqual(std_noise_activity, std_theo, delta=0.1*std_theo)
-        # self.assertAlmostEqual(mu_noise, mu_theo_input, delta=abs(0.2*mu_theo_input))
-        # self.assertAlmostEqual(std_noise, std_theo_input, delta=abs(0.2*std_theo_input))
+        self.assertAlmostEqual(mu_noise_activity, mu_naive, delta=0.1*mu_naive)
+        self.assertAlmostEqual(std_noise_activity, std_naive, delta=0.1*std_naive)
+        self.assertAlmostEqual(mu_noise, mu_naive_input, delta=abs(0.2*mu_naive_input))
+        self.assertAlmostEqual(std_noise, std_naive_input, delta=abs(0.2*std_naive_input))
 
         self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.03*mu_iter)
         self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.03*std_iter)
