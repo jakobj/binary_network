@@ -68,7 +68,7 @@ class binary_meanfield(object):
         if C is None:
             C = np.array([[0., 0.],
                           [0., 0.]])
-        a = bhlp.get_variance(mu)
+        a = bhlp.get_sigma2(mu)
         sigma_shared = np.dot(self.K*self.J*self.J, a)
         sigma_corr = np.diag(np.dot(np.dot(self.K*self.J, C), (self.K*self.J).T))
         return np.sqrt(sigma_shared + sigma_corr)
@@ -98,7 +98,7 @@ class binary_meanfield(object):
         Self-consistent correlations
         Formula (24) without external input in Helias14
         """
-        a = bhlp.get_variance(mu)
+        a = bhlp.get_sigma2(mu)
         A = np.zeros(2)
         A[0] = a[0] * 1./self.NE if self.NE > 0 else 0.
         A[1] = a[1] * 1./self.NI if self.NI > 0 else 0.
