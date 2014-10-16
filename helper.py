@@ -79,18 +79,34 @@ def get_theo_joints(W, b, beta):
 
 
 def get_sigma2(mu):
+    """
+    returns variance of activity mu
+    """
     return mu * (1. - mu)
 
 
 def get_sigma(mu):
+    """
+    returns standard deviation of activity mu
+    """
     return np.sqrt(get_sigma2(mu))
 
 
 def get_sigma_input_from_beta(beta):
+    """returns standard deviation of input given inverse temperature
+    beta, by requiring matching of erfc and sigmoidal activation
+    functions at zero
+
+    """
     return np.sqrt(8. / (np.pi * beta ** 2))
 
 
 def get_beta_from_sigma_input(sigma_input):
+    """returns inverse temperature beta from standard deviation of
+    input, by requiring matching of erfc and sigmoidal activation
+    functions at zero
+
+    """
     return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
 
 
@@ -112,6 +128,9 @@ def get_marginals(a_s, steps_warmup):
 
 
 def get_DKL(p, q):
+    """returns the Kullback-Leibler divergence of distributions p and q
+
+    """
     return np.sum([p[i] * np.log(p[i] / q[i]) for i in range(len(p))])
 
 
@@ -123,27 +142,46 @@ def theta(x, beta=1.):
 
 
 def sigma(x, beta=1.):
+    """sigmoidal activation function for stochastic binary neurons
+    """
     return 1. / (1. + np.exp(-beta * x))
-
-
-def sigmainv(y, beta=1.):
-    return 1. / beta * np.log(1. / (1. / y - 1.))
-
-
-def get_mu_input(epsilon, N, gamma, g, w, mu):
-    return (gamma - (1. - gamma) * g) * epsilon * N * w * mu
-
-
-def get_sigma_input(epsilon, N, gamma, g, w, mu):
-    sigma2 = get_sigma2(mu)
-    return np.sqrt((gamma + (1. - gamma) * g ** 2) * epsilon * N * w ** 2 * sigma2)
 
 
 def Fsigma(x, beta=1.):
     return 0 if sigma(x, beta) < np.random.rand() else 1
 
 
+def sigmainv(y, beta=1.):
+    """returns bias b that leads to mean activity y of a stochastic binary
+    neuron by inverting sigmoidal activation function
+
+    """
+    return 1. / beta * np.log(1. / (1. / y - 1.))
+
+
+def get_mu_input(epsilon, N, gamma, g, w, mu):
+    """returns mean input for given connection statistics and presynaptic
+    activity
+
+    """
+    return (gamma - (1. - gamma) * g) * epsilon * N * w * mu
+
+
+def get_sigma_input(epsilon, N, gamma, g, w, mu):
+    """returns standard deviation of input for given connection statistics
+    and presynaptic activity
+
+    """
+    sigma2 = get_sigma2(mu)
+    return np.sqrt((gamma + (1. - gamma) * g ** 2) * epsilon * N * w ** 2 * sigma2)
+
+
 def bin_binary_data(times, a_states, tbin, tmax):
+    """returns a binned version of the input with binsize tbin from 0 to
+    tmax. input are timestamps times and networks states (or field
+    recordings) a_states, which have to have the same length
+
+    """
     a_s = a_states.T.copy()
     times_bin = np.arange(0., tmax + tbin, tbin)
     st = np.zeros((len(a_s), len(times_bin)))
@@ -158,6 +196,10 @@ def bin_binary_data(times, a_states, tbin, tmax):
 
 
 def autocorrf(times_bin, st, tmax):
+    """returns the population averaged autocorrelation function of the
+    binned signal st
+
+    """
     times = np.hstack([-1. * times_bin[1:][::-1], 0, times_bin[1::]])
     Nbins = len(st[0])
     offset_edge = np.hstack(
@@ -170,6 +212,10 @@ def autocorrf(times_bin, st, tmax):
 
 
 def crosscorrf(times_bin, st, tmax):
+    """returns the population averaged autocorrelation function of the
+    binned signal st
+
+    """
     N = len(st)
     times_cauto, cauto = autocorrf(times_bin, [np.sum(st, axis=0)], tmax)
     times_autof, mu_autof = autocorrf(times_bin, st, tmax)
