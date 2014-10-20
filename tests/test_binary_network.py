@@ -258,7 +258,7 @@ class NetworkTestCase(unittest.TestCase):
         sinit = np.random.randint(0, 2, N)
         tau = 10.
         Nrec = 20
-        steps = 2e5
+        steps = 5e4
         expected_mean = 1. / (1. + np.exp(-b[0]))
         expected_variance = hlp.get_sigma2(expected_mean)
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
@@ -281,7 +281,8 @@ class NetworkTestCase(unittest.TestCase):
         sinit = np.random.randint(0, 2, N)
         tau = 10.
         Nrec = 20
-        steps = 2e5
+        steps = 5e4
+
         def F1(x, beta):
             return 0 if 1. / (1 + np.exp(-beta * x)) < np.random.rand() else 1
 
@@ -304,6 +305,7 @@ class NetworkTestCase(unittest.TestCase):
         b = np.array([0., 0.6])
         beta = 0.8
         sinit = np.random.randint(0, 2, N)
+        steps = 5e4
         tau = 10.
         Nrec = 2
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
@@ -324,6 +326,7 @@ class NetworkTestCase(unittest.TestCase):
         b = np.array([0., 0.6])
         beta = 0.7
         sinit = np.random.randint(0, 2, N)
+        steps = 5e4
         tau = 10.
         Nrec = 2
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
