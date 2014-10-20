@@ -38,3 +38,6 @@ class HelperRegressionTestCase(unittest.TestCase):
         p = np.array([0.4, 0.1, 0.3, 0.2])
         q = np.array([-0.6, 0.8, 0.4, 0.4])
         self.assertRaises(ValueError, bhlp.get_DKL, p, q)
+        p = np.array([0.4, 0.1, 0.3, 0.2])
+        q = np.array([0., 0.5, 0.1, 0.4])
+        self.assertRaises(ValueError, bhlp.get_DKL, p, q)
