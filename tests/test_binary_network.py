@@ -12,19 +12,24 @@ np.random.seed(123456)
 class HelperTestCase(unittest.TestCase):
 
     def test_BM_weight_matrix(self):
-        N = 10
-        expected_diag = np.zeros(N)
-        W = hlp.create_BM_weight_matrix(N)
-        self.assertEqual((N,N), np.shape(W))
+        M = 3
+        N = 3
+        expected_diag = np.zeros(M*N)
+        expected_offdiag = np.zeros((N, N))
+        W = hlp.create_BM_weight_matrix(N, M)
+        self.assertEqual((M*N, M*N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W-W.T))
+        nptest.assert_array_equal(expected_offdiag, W[N:2*N,:N])
+        nptest.assert_array_equal(expected_offdiag, W[:N,N:2*N])
 
     def test_BM_biases(self):
-        N = 10
-        b = hlp.create_BM_biases(N)
-        self.assertEqual(N, len(b))
-        expected_max = np.ones(N)
-        expected_min = np.ones(N)*(-1.)
+        M = 3
+        N = 3
+        b = hlp.create_BM_biases(N, M)
+        self.assertEqual(M*N, len(b))
+        expected_max = np.ones(M*N)
+        expected_min = -1.*np.ones(M*N)
         nptest.assert_array_less(expected_min, b)
         nptest.assert_array_less(b, expected_max)
 
@@ -67,15 +72,16 @@ class HelperTestCase(unittest.TestCase):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
         s = np.array([1,0])
-        expected_energy = -1.*np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
-        energy = hlp.get_energy(W, b, s)
+        beta = 1.35
+        expected_energy = -1. * beta * np.sum(0.5*np.dot(s.T, np.dot(W, s)) + np.dot(b,s))
+        energy = hlp.get_energy(W, b, s, beta)
         self.assertAlmostEqual(expected_energy, energy)
 
     def test_get_theo_joints(self):
-        W = np.array([[0., 0.5], [0.5, 0.]])
-        b = np.array([0., 0.6])
+        N = 3
+        W = hlp.create_BM_weight_matrix(N)
+        b = hlp.create_BM_biases(N)
         beta = 0.5
-        N = len(b)
         expected_joints = []
         states = hlp.get_states(N)
         for s in states:
@@ -83,6 +89,19 @@ class HelperTestCase(unittest.TestCase):
         expected_joints = 1.*np.array(expected_joints)/np.sum(expected_joints)
         joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints)
+        M = 2
+        W = hlp.create_BM_weight_matrix(N, M)
+        b = hlp.create_BM_biases(N, M)
+        beta = 0.5
+        joints = hlp.get_theo_joints(W, b, beta, M)
+        for i in range(M):
+            expected_joints = []
+            states = hlp.get_states(N)
+            for s in states:
+                expected_joints.append(np.exp(-1.*beta*hlp.get_energy(W[i*N:(i+1)*N,i*N:(i+1)*N], b[i*N:(i+1)*N], s)))
+            expected_joints = 1.*np.array(expected_joints)/np.sum(expected_joints)
+            nptest.assert_array_almost_equal(expected_joints, joints[i])
+
 
     def test_get_theo_marginals(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -119,11 +138,20 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(expected_std, std)
 
     def test_get_joints(self):
-        N = int(1e5)
-        a_s = np.random.randint(0, 2, N).reshape(int(N/2), 2)
-        expected_joints = [0.25, 0.25, 0.25, 0.25]
+        N = 3
+        steps = int(1e5)
+        a_s = np.random.randint(0, 2, N*steps).reshape(steps, N)
+        expected_joints = np.array([1./(2**N)]*2**N)
         joints = hlp.get_joints(a_s, 0)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+        M = 2
+        N = 3
+        steps = int(1e5)
+        a_s = np.random.randint(0, 2, M*N*steps).reshape(steps, M*N)
+        expected_joints = np.array([1./(2**N)]*2**N)
+        joints = hlp.get_joints(a_s, 0, M)
+        for i in range(M):
+            nptest.assert_array_almost_equal(expected_joints, joints[i], decimal=2)
 
     def test_get_marginals(self):
         N = int(1e5)
@@ -138,6 +166,15 @@ class HelperTestCase(unittest.TestCase):
         expected_DKL = np.sum([p[i]*np.log(p[i]/q[i]) for i in range(len(p))])
         DKL = hlp.get_DKL(p, q)
         nptest.assert_array_almost_equal(expected_DKL, DKL)
+        M = 2
+        p = np.array([[0.1, 0.3, 0.2, 0.4],
+                      [0.6, 0.2, 0.1, 0.1]])
+        q = np.array([[0.2, 0.3, 0.1, 0.4],
+                      [0.5, 0.2, 0.2, 0.1]])
+        DKL = hlp.get_DKL(p, q, M)
+        for j in range(M):
+            expected_DKL = np.sum([p[j,i]*np.log(p[j,i]/q[j,i]) for i in range(len(p[j,:]))])
+            nptest.assert_array_almost_equal(expected_DKL, DKL[j])
 
     def test_theta(self):
         x = np.array([1., -.1, -1., .1])
@@ -352,7 +389,7 @@ class NetworkTestCase(unittest.TestCase):
         # Network case (correlated sources)
         w = 0.2
         g = 8.
-        gamma = 0.
+        gamma = 0.2
         epsilon = 0.3
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
         b_brn = -1.*hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target)*np.ones(N)-1.*w/2
@@ -361,7 +398,7 @@ class NetworkTestCase(unittest.TestCase):
         times_bin_brn, st_brn = hlp.bin_binary_data(a_times_brn, a_s_brn, tbin, time)
         timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
-        self.assertTrue(abs(np.sum(autof_brn-expected_autof)) < 0.5*np.sum(abs(autof_brn)))
+        self.assertLess(abs(np.sum(autof_brn-expected_autof)), 0.5*np.sum(abs(autof_brn)))
         self.assertTrue(expected_cross_brn > crossf_brn[abs(timelag_brn) < 1e-10][0])
 
         # Poisson case (independent sources)
@@ -387,7 +424,7 @@ class NetworkTestCase(unittest.TestCase):
 
         w = 0.2
         g = 8.
-        gamma = 0.
+        gamma = 0.2
         epsilon = 0.3
         expected_mu_input = hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target)
         expected_std_input = hlp.get_sigma_input(epsilon, Nnoise, gamma, g, w, mu_target)
@@ -400,8 +437,8 @@ class NetworkTestCase(unittest.TestCase):
         b_brn[:N] = -w/2.
         b_brn[N:] = -1.*hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target)-1.*w/2
         a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = bnet.simulate_eve(W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N+Nnoise], [hlp.theta], Nrec_ui=10)
-        self.assertTrue( abs(np.mean(a_ui_brn)+w/2. - expected_mu_input) < 0.05*abs(expected_mu_input))
-        self.assertTrue( (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input) < 0)
+        self.assertLess(abs(np.mean(a_ui_brn)+w/2. - expected_mu_input), 0.05*abs(expected_mu_input))
+        self.assertLess((np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input), 0)
 
         # Poisson case (independent sources)
         W = np.zeros((N+Nnoise, N+Nnoise))
@@ -495,14 +532,14 @@ class MeanfieldTestCase(unittest.TestCase):
     def test_comp_network_meanfield(self):
         N = 10
         Nnoise = 500
-        T = 1e4
+        T = 1.5e4
         w = 0.1
         g = 8.
         epsilon = 0.3
-        gamma = 0.2
+        gamma = 0.3
         mu_target = 0.15
         tau = 10.
-        Nrec = 50
+        Nrec = 60
 
         W = np.zeros((N+Nnoise, N+Nnoise))
         W[:N,N:] = hlp.create_noise_connectivity_matrix(N, Nnoise, gamma, g, w, epsilon)
@@ -543,7 +580,7 @@ class MeanfieldTestCase(unittest.TestCase):
         self.assertAlmostEqual(mu_noise, mu_naive_input, delta=abs(0.2*mu_naive_input))
         self.assertAlmostEqual(std_noise, std_naive_input, delta=abs(0.2*std_naive_input))
 
-        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.04*mu_iter)
+        self.assertAlmostEqual(mu_noise_activity, mu_iter, delta=0.05*mu_iter)
         self.assertAlmostEqual(std_noise_activity, std_iter, delta=0.04*std_iter)
         self.assertAlmostEqual(mu_noise, mu_iter_input, delta=abs(0.04*mu_iter_input))
         self.assertAlmostEqual(std_noise, std_iter_input, delta=abs(0.04*std_iter_input))

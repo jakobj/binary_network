@@ -3,17 +3,20 @@ import itertools as itr
 from collections import defaultdict
 
 
-def create_BM_weight_matrix(N):
-    W = 2. * (np.random.rand(N, N) - 0.5)
-    for i in range(N):
+def create_BM_weight_matrix(N, M=1):
+    Ntot = M*N
+    W = np.zeros((Ntot, Ntot))
+    for i in range(M):
+        W[i*N:(i+1)*N, i*N:(i+1)*N] = 2. * (np.random.rand(N, N) - 0.5)
+    for i in range(Ntot):
         for j in range(i):
             W[j, i] = W[i, j]
     W -= np.diag(W.diagonal())
     return W
 
 
-def create_BM_biases(N):
-    return 2. * (np.random.rand(N) - .5)
+def create_BM_biases(N, M=1):
+    return 2. * (np.random.rand(M*N) - .5)
 
 
 def create_connectivity_matrix(N, w, g, epsilon, gamma):
@@ -50,8 +53,8 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
-def get_energy(W, b, s):
-    return -1. * np.sum(0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
+def get_energy(W, b, s, beta=1.):
+    return -1. * beta * np.sum(0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
 
 
 def get_states(N):
@@ -68,14 +71,20 @@ def get_theo_marginals(W, b, beta):
     return p
 
 
-def get_theo_joints(W, b, beta):
-    N = len(b)
-    p = []
-    states = get_states(N)
-    for state in states:
-        p.append(
-            np.exp(-1. * beta * get_energy(np.array(W), np.array(b), np.array(state))))
-    return 1. * np.array(p) / np.sum(p)
+def get_theo_joints(W, b, beta, M=1):
+    N = len(b)/M
+    joints = []
+    for i in range(M):
+        p = []
+        states = get_states(N)
+        for state in states:
+            p.append(
+                np.exp(-1. * get_energy(np.array(W[i*N:(i+1)*N,i*N:(i+1)*N]), np.array(b[i*N:(i+1)*N]), np.array(state), beta)))
+        joints.append(np.array(p)/np.sum(p))
+    if M == 1:
+        return joints[0]
+    else:
+        return joints
 
 
 def get_sigma2(mu):
@@ -110,13 +119,20 @@ def get_beta_from_sigma_input(sigma_input):
     return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
 
 
-def get_joints(a_s, steps_warmup):
+def get_joints(a_s, steps_warmup, M=1):
     steps_tot = len(a_s[steps_warmup:])
-    states = defaultdict(int)
-    for s in a_s[steps_warmup:]:
-        states[tuple(s)] += 1
-    states = np.array([it[1] for it in sorted(states.items())])
-    return 1. * states / steps_tot
+    N = len(a_s[0,:])/M
+    a_states = np.empty((M, 2**N))
+    for i in range(M):
+        states = defaultdict(int)
+        for s in a_s[steps_warmup:, i*N:(i+1)*N]:
+            states[tuple(s)] += 1
+        states = np.array([it[1] for it in sorted(states.items())])
+        a_states[i,:] = 1.* states / steps_tot
+    if M == 1:
+        return a_states[0,:]
+    else:
+        return a_states
 
 
 def get_marginals(a_s, steps_warmup):
@@ -127,11 +143,17 @@ def get_marginals(a_s, steps_warmup):
     return p
 
 
-def get_DKL(p, q):
+def get_DKL(p, q, M=1):
     """returns the Kullback-Leibler divergence of distributions p and q
 
     """
-    return np.sum([p[i] * np.log(p[i] / q[i]) for i in range(len(p))])
+    if M == 1:
+        return np.sum([p[i] * np.log(p[i] / q[i]) for i in range(len(p))])
+    else:
+        DKL = []
+        for j in range(M):
+            DKL.append(np.sum([p[j][i] * np.log(p[j][i] / q[j][i]) for i in range(len(p[j]))]))
+        return DKL
 
 
 def theta(x, beta=1.):
@@ -174,6 +196,15 @@ def get_sigma_input(epsilon, N, gamma, g, w, mu):
     """
     sigma2 = get_sigma2(mu)
     return np.sqrt((gamma + (1. - gamma) * g ** 2) * epsilon * N * w ** 2 * sigma2)
+
+
+def get_adjusted_weights_and_bias(W, b, b_eff, beta_eff, beta):
+    """return adjusted weights matrix and bias vector for a Boltzmann
+    machine, given the effective offset b_eff, the effective inverse
+    temperature beta_eff and the target inverse termperature beta
+
+    """
+    return beta/beta_eff*W, beta/beta_eff*b+b_eff
 
 
 def bin_binary_data(times, a_states, tbin, tmax):
