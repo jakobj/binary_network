@@ -154,15 +154,19 @@ def get_DKL(p, q, M=1):
     """returns the Kullback-Leibler divergence of distributions p and q
 
     """
-    if abs(np.sum(p) - 1.) > 1e-15 or abs(np.sum(q) - 1.) > 1e-15:
-        raise ValueError('Joint densities must be normalized.')
-    if np.any(p <= 0) or np.any(q <= 0):
-        raise ValueError('Joint densities must be strictly positive.')
     if M == 1:
+        if abs(np.sum(p) - 1.) > 1e-15 or abs(np.sum(q) - 1.) > 1e-15:
+            raise ValueError('Joint densities must be normalized.')
+        if np.any(p <= 0) or np.any(q <= 0):
+            raise ValueError('Joint densities must be strictly positive.')
         return np.sum([p[i] * np.log(p[i] / q[i]) for i in range(len(p))])
     else:
         DKL = []
         for j in range(M):
+            if abs(np.sum(p[j]) - 1.) > 1e-15 or abs(np.sum(q[j]) - 1.) > 1e-15:
+                raise ValueError('Joint densities must be normalized.')
+            if np.any(p[j] <= 0) or np.any(q[j] <= 0):
+                raise ValueError('Joint densities must be strictly positive.')
             DKL.append(np.sum([p[j][i] * np.log(p[j][i] / q[j][i]) for i in range(len(p[j]))]))
         return DKL
 
