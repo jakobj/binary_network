@@ -122,25 +122,32 @@ def get_beta_from_sigma_input(sigma_input):
 def get_joints(a_s, steps_warmup, M=1):
     steps_tot = len(a_s[steps_warmup:])
     N = len(a_s[0,:])/M
-    a_states = np.empty((M, 2**N))
+    a_joints = np.empty((M, 2**N))
+    possible_states = get_states(N)
+    states = {}
     for i in range(M):
-        states = defaultdict(int)
+        for s in possible_states:
+            states[tuple(s)] = 0.
         for s in a_s[steps_warmup:, i*N:(i+1)*N]:
             states[tuple(s)] += 1
-        states = np.array([it[1] for it in sorted(states.items())])
-        a_states[i,:] = 1.* states / steps_tot
+        states_sorted = np.array([it[1] for it in sorted(states.items())])
+        a_joints[i,:] = 1.* states_sorted / steps_tot
     if M == 1:
-        return a_states[0,:]
+        return a_joints[0,:]
     else:
-        return a_states
+        return a_joints
 
 
-def get_marginals(a_s, steps_warmup):
-    N = len(a_s[0])
-    p = np.empty(N)
-    for i in range(N):
-        p[i] = np.mean(a_s[steps_warmup:, i])
-    return p
+def get_marginals(a_s, steps_warmup, M=1):
+    N = len(a_s[0, :]) / M
+    a_marginals = np.empty((M, N))
+    for j in range(M):
+        for i in range(N):
+            a_marginals[j, i] = np.mean(a_s[steps_warmup:, j*N+i])
+    if M == 1:
+        return a_marginals[0]
+    else:
+        return a_marginals
 
 
 def get_DKL(p, q, M=1):
