@@ -10,11 +10,11 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq python-numpy python-scipy
 install:
-  - pip install python-coveralls
   - pip install nose
   - pip install coverage
   - export PYTHONPATH=$PYTHONPATH:.
 script:
   - nosetests --with-coverage
 after_success:
+  - pip install python-coveralls
   - coveralls
