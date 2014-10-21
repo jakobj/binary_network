@@ -138,6 +138,27 @@ def get_joints(a_s, steps_warmup, M=1):
         return a_joints
 
 
+def get_joints_sparse(sinit, a_s, steps_warmup, M=1):
+    steps_tot = len(a_s[steps_warmup:])
+    N = len(sinit)/M
+    a_joints = np.empty((M, 2**N))
+    possible_states = get_states(N)
+    states = {}
+    for i in range(M):
+        cstate = sinit.copy()
+        for s in possible_states:
+            states[tuple(s)] = 0.
+        for idx, sidx in a_s:
+            cstate[idx] = sidx
+            states[tuple(cstate[i*N:(i+1)*N])] += 1
+        states_sorted = np.array([it[1] for it in sorted(states.items())])
+        a_joints[i,:] = 1.* states_sorted / steps_tot
+    if M == 1:
+        return a_joints[0]
+    else:
+        return a_joints
+
+
 def get_marginals(a_s, steps_warmup, M=1):
     N = len(a_s[0, :]) / M
     a_marginals = np.empty((M, N))
