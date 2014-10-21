@@ -3,6 +3,7 @@ import numpy as np
 import numpy.testing as nptest
 
 import helper as bhlp
+import network as bnet
 
 np.random.seed(123456)
 
@@ -55,3 +56,21 @@ class HelperRegressionTestCase(unittest.TestCase):
                       [0.1, 0.5, 0.3, 0.1]])
         self.assertTrue(bhlp.get_DKL(p, q, M)[0] is np.nan)
         self.assertFalse(bhlp.get_DKL(p, q, M)[1] is np.nan)
+
+    def test_initial_state(self):
+        N = 4
+        W = bhlp.create_BM_weight_matrix(N)
+        b = bhlp.create_BM_biases(N)
+        beta = 0.8
+        sinit = np.random.randint(0, 2, N)
+        Nrec = 2
+        expected_s0 = sinit[:Nrec]
+        Tmax = 5e4
+        tau = 10.
+        s0, a_times, a_s = bnet.simulate_eve_sparse(
+            W, b, tau, sinit, Tmax, Nrec, [N], [bhlp.Fsigma], beta=beta)
+        joints = bhlp.get_joints_sparse(s0, a_s, 0)
+        self.assertEqual(len(sinit), N)
+        self.assertEqual(len(s0), Nrec)
+        self.assertEqual(len(joints), 2**Nrec)
+        nptest.assert_array_almost_equal(expected_s0, s0)

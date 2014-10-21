@@ -119,4 +119,4 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
     maxpos = np.where(a_steps > 0.)[0][-1]
     a_s = a_s[:maxpos,:]
     a_steps = a_steps[:maxpos]
-    return sinit, a_steps, a_s
+    return sinit[:Nrec], a_steps, a_s
