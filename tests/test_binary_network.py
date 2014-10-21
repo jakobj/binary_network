@@ -155,10 +155,23 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 2
         N = 3
-        steps = int(1e5)
         a_s = np.random.randint(0, 2, M * N * steps).reshape(steps, M * N)
-        expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
         joints = hlp.get_joints(a_s, 0, M)
+        for i in range(M):
+            nptest.assert_array_almost_equal(
+                expected_joints, joints[i], decimal=2)
+
+    def test_get_joints_sparse(self):
+        N = 3
+        steps = 1e5
+        a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
+        expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
+        joints = hlp.get_joints_sparse(np.array([0,0,0]), a_s, 0)
+        nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+        M = 3
+        N = 3
+        a_s = np.vstack([np.random.randint(0, M*N, steps), np.random.randint(0, 2, steps)]).T
+        joints = hlp.get_joints_sparse(np.array([0]*M*N), a_s, 0, M)
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
@@ -320,6 +333,21 @@ class NetworkTestCase(unittest.TestCase):
             nptest.assert_array_almost_equal(
                 expected_joints, joints, decimal=1)
 
+    def test_sparse_simulation(self):
+        N = 2
+        W = np.array([[0., 0.5], [0.5, 0.]])
+        b = np.array([0., 0.6])
+        beta = 0.8
+        sinit = np.random.randint(0, 2, N)
+        Tmax = 3e5
+        tau = 10.
+        Nrec = 2
+        sinit, a_times, a_s = bnet.simulate_eve_sparse(
+            W, b, tau, sinit, Tmax, Nrec, [N], [hlp.Fsigma], beta=beta)
+        joints = hlp.get_joints_sparse(sinit, a_s, 0)
+        expected_joints = hlp.get_theo_joints(W, b, beta)
+        nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+
     def test_marginal_distribution(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -408,7 +436,7 @@ class NetworkTestCase(unittest.TestCase):
                         < 0.5 * np.sum(abs(autof)))
 
     def test_cross_corr(self):
-        N = 50
+        N = 60
         sinit = np.zeros(N)
         tau = 10.
         Nrec = N
@@ -421,14 +449,14 @@ class NetworkTestCase(unittest.TestCase):
             [-1. * np.arange(tbin, tmax + tbin, tbin)[::-1], 0, np.arange(tbin, tmax + tbin, tbin)])
         expected_autof = expected_var * \
             np.exp(-1. * abs(expected_timelag) / tau)
-        expected_cross_brn = -0.003
+        expected_cross_brn = -0.001
         expected_cross = 0.
         expected_crossf = np.zeros(len(expected_timelag))
 
         # Network case (correlated sources)
         w = 0.2
         g = 8.
-        gamma = 0.2
+        gamma = 0.1
         epsilon = 0.3
         W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
         b_brn = -1. * \
