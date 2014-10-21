@@ -198,17 +198,21 @@ def theta(x, beta=1.):
     if abs(x) < 1e-15:
         raise ValueError('Invalid value in ecountered in theta(x).')
     else:
-        return 1. / 2. * (np.sign(x) + 1.)
+        return 0 if x < 0 else 1
 
 
 def sigma(x, beta=1.):
-    """sigmoidal activation function for stochastic binary neurons
+    """sigmoidal function
+
     """
     return 1. / (1. + np.exp(-beta * x))
 
 
 def Fsigma(x, beta=1.):
-    return 0 if sigma(x, beta) < np.random.rand() else 1
+    """sigmoidal activation function for stochastic binary neurons
+
+    """
+    return 0 if 1. / (1. + np.exp(-beta * x)) < np.random.rand() else 1
 
 
 def sigmainv(y, beta=1.):
