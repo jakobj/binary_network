@@ -148,9 +148,10 @@ def get_joints_sparse(sinit, a_s, steps_warmup, M=1):
         cstate = sinit.copy()
         for s in possible_states:
             states[tuple(s)] = 0.
-        for idx, sidx in a_s:
+        for step, (idx, sidx) in enumerate(a_s):
             cstate[idx] = sidx
-            states[tuple(cstate[i*N:(i+1)*N])] += 1
+            if step > steps_warmup:
+                states[tuple(cstate[i*N:(i+1)*N])] += 1
         states_sorted = np.array([it[1] for it in sorted(states.items())])
         a_joints[i,:] = 1.* states_sorted / steps_tot
     if M == 1:

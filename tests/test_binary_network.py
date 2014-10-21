@@ -149,14 +149,17 @@ class HelperTestCase(unittest.TestCase):
     def test_get_joints(self):
         N = 3
         steps = int(1e5)
+        steps_warmup = 1e4
         a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
+        a_s[:steps_warmup,:] = 0
         expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
-        joints = hlp.get_joints(a_s, 0)
+        joints = hlp.get_joints(a_s, steps_warmup)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 2
         N = 3
         a_s = np.random.randint(0, 2, M * N * steps).reshape(steps, M * N)
-        joints = hlp.get_joints(a_s, 0, M)
+        a_s[:steps_warmup, :] = 0
+        joints = hlp.get_joints(a_s, steps_warmup, M)
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
@@ -164,14 +167,17 @@ class HelperTestCase(unittest.TestCase):
     def test_get_joints_sparse(self):
         N = 3
         steps = 1e5
+        steps_warmup = 1e4
         a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
+        a_s[:steps_warmup, 1] = 0
         expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
-        joints = hlp.get_joints_sparse(np.array([0,0,0]), a_s, 0)
+        joints = hlp.get_joints_sparse(np.array([0,0,0]), a_s, steps_warmup)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 3
         N = 3
         a_s = np.vstack([np.random.randint(0, M*N, steps), np.random.randint(0, 2, steps)]).T
-        joints = hlp.get_joints_sparse(np.array([0]*M*N), a_s, 0, M)
+        a_s[:steps_warmup, 1] = 0
+        joints = hlp.get_joints_sparse(np.array([0]*M*N), a_s, steps_warmup, M)
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
