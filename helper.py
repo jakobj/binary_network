@@ -53,6 +53,15 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_noise_recurrent_connectivity_matrix(Nbm, Nnoise, epsilon):
+    W = np.zeros((Nnoise, Nbm))
+    K = epsilon*Nbm
+    for l in range(Nnoise):
+        ind = np.random.permutation(np.arange(0, Nbm))[:K]
+        W[l, ind] = 2. * (np.random.rand(K) - 0.5)
+    return W
+
+
 def get_energy(W, b, s, beta=1.):
     return -1. * beta * np.sum(0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
 

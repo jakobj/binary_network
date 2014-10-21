@@ -17,6 +17,8 @@ class HelperTestCase(unittest.TestCase):
         expected_diag = np.zeros(M * N)
         expected_offdiag = np.zeros((N, N))
         W = hlp.create_BM_weight_matrix(N, M)
+        self.assertGreaterEqual(1., np.max(W))
+        self.assertLessEqual(-1., np.min(W))
         self.assertEqual((M * N, M * N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W - W.T))
@@ -72,6 +74,18 @@ class HelperTestCase(unittest.TestCase):
                 np.sum(l[l < 0]), -1. * epsilon * NInoise * w * g)
             self.assertAlmostEqual(
                 1. * len(l[l > 0]) / len(l[l < 0]), gamma / (1. - gamma))
+
+    def test_noise_recurrent_weight_matrix(self):
+        Nnoise = 100
+        N = 200
+        epsilon = 0.2
+        W = hlp.create_noise_recurrent_connectivity_matrix(
+            N, Nnoise, epsilon)
+        self.assertGreaterEqual(1., np.max(W))
+        self.assertLessEqual(-1., np.min(W))
+        self.assertLess(np.sum(W), 0.01*N*Nnoise*epsilon)
+        for l in W:
+            self.assertEqual(len(l[l > 0])+len(l[l < 0]), epsilon * N)
 
     def test_get_energy(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
