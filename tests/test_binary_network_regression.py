@@ -35,9 +35,9 @@ class HelperRegressionTestCase(unittest.TestCase):
         q = np.array([0.7, 0.1, 0.3, 0.2])
         self.assertRaises(ValueError, bhlp.get_DKL, p, q)
         q = np.array([-0.6, 0.8, 0.4, 0.4])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q)
+        self.assertTrue(bhlp.get_DKL(p, q) is np.nan)
         q = np.array([0., 0.5, 0.1, 0.4])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q)
+        self.assertTrue(bhlp.get_DKL(p, q) is np.nan)
         M = 2
         p = np.array([[0.4, 0.1, 0.3, 0.2],
                       [0.05, 0.5, 0.4, 0.05]])
@@ -49,7 +49,9 @@ class HelperRegressionTestCase(unittest.TestCase):
         self.assertRaises(ValueError, bhlp.get_DKL, p, q, M)
         q = np.array([[0.5, 0.2, 0.2, 0.1],
                       [-0.1, 0.6, 0.4, 0.1]])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q, M)
-        q = np.array([[0., 0.2, 0.2, 0.1],
+        self.assertFalse(bhlp.get_DKL(p, q, M)[0] is np.nan)
+        self.assertTrue(bhlp.get_DKL(p, q, M)[1] is np.nan)
+        q = np.array([[0., 0.2, 0.2, 0.6],
                       [0.1, 0.5, 0.3, 0.1]])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q, M)
+        self.assertTrue(bhlp.get_DKL(p, q, M)[0] is np.nan)
+        self.assertFalse(bhlp.get_DKL(p, q, M)[1] is np.nan)

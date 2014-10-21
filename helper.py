@@ -185,7 +185,6 @@ def get_DKL(p, q, M=1):
         if abs(np.sum(p[j]) - 1.) > 1e-15 or abs(np.sum(q[j]) - 1.) > 1e-15:
             raise ValueError('Joint densities must be normalized.')
         if np.any(p[j] <= 0) or np.any(q[j] <= 0):
-            # raise ValueError('Joint densities must be strictly positive.')
             DKL.append(np.nan)
         else:
             DKL.append(np.sum([p[j][i] * np.log(p[j][i] / q[j][i]) for i in range(len(p[j]))]))
