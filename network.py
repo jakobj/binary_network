@@ -92,7 +92,7 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
     assert(Nrec > 0)
     N = len(b)
     maxsteps = int(np.ceil(1.*N*time/tau))
-    s = sinit[:Nrec]
+    s = sinit.copy()
     step = 1
     maxrelsteps = int(np.ceil(1.1*Nrec*time/tau))
     relstep = 0
