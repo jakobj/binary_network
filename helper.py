@@ -169,6 +169,19 @@ def get_joints_sparse(sinit, a_s, steps_warmup, M=1):
         return a_joints
 
 
+def get_all_states_from_sparse(sinit, a_s, steps_warmup):
+    steps_tot = len(a_s)
+    N = len(sinit)
+    a_s_full = np.empty((steps_tot, N))
+    cstate = sinit.copy()
+    for step, (idx, sidx) in enumerate(a_s):
+        cstate[idx] = sidx
+        if step >= steps_warmup:
+            a_s_full[step] = cstate
+    a_s_full = a_s_full[steps_warmup:]
+    return a_s_full
+
+
 def get_marginals(a_s, steps_warmup, M=1):
     N = len(a_s[0, :]) / M
     a_marginals = np.empty((M, N))
@@ -258,14 +271,14 @@ def get_adjusted_weights_and_bias(W, b, b_eff, beta_eff, beta):
     return beta/beta_eff*W, beta/beta_eff*b+b_eff
 
 
-def bin_binary_data(times, a_states, tbin, tmax):
+def bin_binary_data(times, a_states, tbin, tmin, tmax):
     """returns a binned version of the input with binsize tbin from 0 to
     tmax. input are timestamps times and networks states (or field
     recordings) a_states, which have to have the same length
 
     """
     a_s = a_states.T.copy()
-    times_bin = np.arange(0., tmax + tbin, tbin)
+    times_bin = np.arange(tmin, tmax + tbin, tbin)
     st = np.zeros((len(a_s), len(times_bin)))
     Ntimes = len(times)
     for j, s in enumerate(a_s):

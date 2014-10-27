@@ -404,7 +404,7 @@ class NetworkTestCase(unittest.TestCase):
             idl = np.where(times <= t)[0]
             expected_bin[0][i] = a_s[idl[-1], 0]
             expected_bin[1][i] = a_s[idl[-1], 1]
-        times_bin, st = hlp.bin_binary_data(times, a_s, tbin, time)
+        times_bin, st = hlp.bin_binary_data(times, a_s, tbin, 0., time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
 
@@ -437,7 +437,7 @@ class NetworkTestCase(unittest.TestCase):
         self.assertAlmostEqual(
             mu_target, np.mean(a_s_brn), delta=0.1 * np.mean(a_s_brn))
         times_bin_brn, st_brn = hlp.bin_binary_data(
-            a_times_brn, a_s_brn, tbin, time)
+            a_times_brn, a_s_brn, tbin, 0., time)
         timelag_brn, autof_brn = hlp.autocorrf(
             times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
@@ -451,7 +451,7 @@ class NetworkTestCase(unittest.TestCase):
             W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
         self.assertAlmostEqual(
             mu_target, np.mean(a_s), delta=0.1 * np.mean(a_s))
-        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
+        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, 0., time)
         timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
@@ -489,7 +489,7 @@ class NetworkTestCase(unittest.TestCase):
             W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
         self.assertTrue(abs(np.mean(a_s_brn) - mu_target) < 0.1 * mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(
-            a_times_brn, a_s_brn, tbin, time)
+            a_times_brn, a_s_brn, tbin, 0., time)
         timelag_brn, autof_brn, crossf_brn = hlp.crosscorrf(
             times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
@@ -504,7 +504,7 @@ class NetworkTestCase(unittest.TestCase):
         a_times, a_s = bnet.simulate_eve(
             W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
         self.assertTrue(abs(np.mean(a_s) - mu_target) < 0.1 * mu_target)
-        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, time)
+        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, 0., time)
         timelag, autof, crossf = hlp.crosscorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
