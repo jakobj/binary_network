@@ -91,10 +91,10 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
 def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
     assert(Nrec > 0)
     N = len(b)
-    maxsteps = int(np.ceil(1.*N*time/tau))
+    maxsteps = int(np.ceil(1. * N * time / tau))
     s = sinit.copy()
     step = 1
-    maxrelsteps = int(np.ceil(1.15*Nrec*time/tau))
+    maxrelsteps = int(np.ceil(1.3 * Nrec * time / tau))
     relstep = 0
     a_s = np.empty((maxrelsteps, 2))
     a_steps = np.zeros(maxrelsteps)
@@ -108,15 +108,15 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
                 break
             else:
                idF += 1
-        ui = np.dot(W[idx,:], s) + b[idx]
+        ui = np.dot(W[idx, :], s) + b[idx]
         s[idx] = l_F[idF](ui, beta)
         if idx < Nrec:
-            a_s[relstep,:] = [idx, s[idx]]
+            a_s[relstep, :] = [idx, s[idx]]
             a_steps[relstep] = time
             relstep += 1
         hq.heappush(updates, (time+np.random.exponential(tau), idx))
         step += 1
     maxpos = np.where(a_steps > 0.)[0][-1]
-    a_s = a_s[:maxpos,:]
+    a_s = a_s[:maxpos, :]
     a_steps = a_steps[:maxpos]
     return sinit[:Nrec], a_steps, a_s
