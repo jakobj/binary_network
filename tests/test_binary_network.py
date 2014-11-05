@@ -364,10 +364,11 @@ class NetworkTestCase(unittest.TestCase):
         sinit = np.random.randint(0, 2, N)
         Tmax = 3e5
         tau = 10.
-        Nrec = 2
-        sinit, a_times, a_s = bnet.simulate_eve_sparse(
-            W, b, tau, sinit, Tmax, Nrec, [N], [hlp.Fsigma], beta=beta)
-        joints = hlp.get_joints_sparse(sinit, a_s, 0)
+        rNrec = [0, 2]
+        s0, a_times, a_s = bnet.simulate_eve_sparse(
+            W, b, tau, sinit, Tmax, rNrec, [N], [hlp.Fsigma], beta=beta)
+        nptest.assert_array_equal(sinit, s0)
+        joints = hlp.get_joints_sparse(s0, a_s, 0)
         expected_joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
 

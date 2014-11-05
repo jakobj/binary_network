@@ -63,14 +63,14 @@ class HelperRegressionTestCase(unittest.TestCase):
         b = bhlp.create_BM_biases(N)
         beta = 0.8
         sinit = np.random.randint(0, 2, N)
-        Nrec = 2
-        expected_s0 = sinit[:Nrec]
+        rNrec = [0, 2]
+        expected_s0 = sinit[rNrec[0]:rNrec[1]]
         Tmax = 5e4
         tau = 10.
         s0, a_times, a_s = bnet.simulate_eve_sparse(
-            W, b, tau, sinit, Tmax, Nrec, [N], [bhlp.Fsigma], beta=beta)
+            W, b, tau, sinit, Tmax, rNrec, [N], [bhlp.Fsigma], beta=beta)
         joints = bhlp.get_joints_sparse(s0, a_s, 0)
         self.assertEqual(len(sinit), N)
-        self.assertEqual(len(s0), Nrec)
-        self.assertEqual(len(joints), 2**Nrec)
+        self.assertEqual(len(s0), rNrec[1]-rNrec[0])
+        self.assertEqual(len(joints), 2**(rNrec[1]-rNrec[0]))
         nptest.assert_array_almost_equal(expected_s0, s0)

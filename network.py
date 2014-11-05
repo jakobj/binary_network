@@ -88,7 +88,8 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
         return a_steps, a_s
 
 
-def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
+def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
+    Nrec = rNrec[1] - rNrec[0]
     assert(Nrec > 0)
     N = len(b)
     maxsteps = int(np.ceil(1. * N * time / tau))
@@ -110,7 +111,7 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
                idF += 1
         ui = np.dot(W[idx, :], s) + b[idx]
         s[idx] = l_F[idF](ui, beta)
-        if idx < Nrec:
+        if idx >= rNrec[0] and idx < rNrec[1]:
             a_s[relstep, :] = [idx, s[idx]]
             a_steps[relstep] = time
             relstep += 1
@@ -119,7 +120,7 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
     maxpos = np.where(a_steps > 0.)[0][-1]
     a_s = a_s[:maxpos, :]
     a_steps = a_steps[:maxpos]
-    return sinit[:Nrec], a_steps, a_s
+    return sinit[rNrec[0]:rNrec[1]], a_steps, a_s
 
 
 def simulate_eve_sparse_stim(W, b, tau, sinit, time, Nrec, l_N, l_F, l_pattern, beta=1.):
