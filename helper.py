@@ -194,6 +194,10 @@ def get_marginals(a_s, steps_warmup, M=1):
         return a_marginals
 
 
+def get_euclidean_distance(x, y):
+    return np.sqrt(np.dot(x-y, x-y))
+
+
 def get_DKL(p, q, M=1):
     """returns the Kullback-Leibler divergence of distributions p and q
 

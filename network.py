@@ -120,3 +120,41 @@ def simulate_eve_sparse(W, b, tau, sinit, time, Nrec, l_N, l_F, beta=1.):
     a_s = a_s[:maxpos, :]
     a_steps = a_steps[:maxpos]
     return sinit[:Nrec], a_steps, a_s
+
+
+def simulate_eve_sparse_stim(W, b, tau, sinit, time, Nrec, l_N, l_F, l_pattern, beta=1.):
+    assert(Nrec > 0)
+    N = len(b)
+    maxsteps = int(np.ceil(1. * N * time / tau))
+    s = sinit.copy()
+    step = 0
+    maxrelsteps = int(np.ceil(1.3 * Nrec * time / tau))
+    relstep = 0
+    a_s = np.empty((maxrelsteps, 2))
+    a_steps = np.zeros(maxrelsteps)
+    updates = list(zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N))))
+    hq.heapify(updates)
+    pattern_pos = 0
+    while step < maxsteps:
+        time, idx = hq.heappop(updates)
+        if pattern_pos < len(l_pattern) and time > l_pattern[pattern_pos][0]:
+            b[l_pattern[pattern_pos][1][0]:l_pattern[pattern_pos][1][1]] = l_pattern[pattern_pos][2]
+            pattern_pos += 1
+        idF = 0
+        for Ni in l_N:
+            if idx < Ni:
+                break
+            else:
+               idF += 1
+        ui = np.dot(W[idx, :], s) + b[idx]
+        s[idx] = l_F[idF](ui, beta)
+        if idx < Nrec:
+            a_s[relstep, :] = [idx, s[idx]]
+            a_steps[relstep] = time
+            relstep += 1
+        hq.heappush(updates, (time+np.random.exponential(tau), idx))
+        step += 1
+    maxpos = np.where(a_steps > 0.)[0][-1]
+    a_s = a_s[:maxpos, :]
+    a_steps = a_steps[:maxpos]
+    return sinit[:Nrec], a_steps, a_s
