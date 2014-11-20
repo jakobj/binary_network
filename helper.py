@@ -2,6 +2,18 @@ import numpy as np
 import itertools as itr
 from collections import defaultdict
 
+def create_BM_weight_matrix_normal(N, muJ, sigmaJ):
+    W = np.random.normal(muJ, sigmaJ, (N, N))
+    for i in range(N):
+        for j in range(i):
+            W[j, i] = W[i, j]
+    W -= np.diag(W.diagonal())
+    return W
+
+
+def create_BM_biases_normal(N, muJ, mu_target):
+    return np.ones(N) * -1. * muJ * N * mu_target
+
 
 def create_BM_weight_matrix(N, M=1):
     Ntot = M*N
