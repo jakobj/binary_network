@@ -86,10 +86,22 @@ def get_theo_marginals(W, b, beta):
     N = len(b)
     joints = get_theo_joints(W, b, beta)
     states = get_states(N)
-    p = []
+    m = np.zeros(N)
     for i in range(N):
-        p.append(np.sum(joints[states[:, i] == 1]))
-    return p
+        m[i] = np.sum(joints[states[:, i] == 1])
+    return m
+
+
+def get_theo_covariances(W, b, beta):
+    N = len(b)
+    joints = get_theo_joints(W, b, beta)
+    states = get_states(N)
+    m = get_theo_marginals(W, b, beta)
+    cov = np.zeros((N, N))
+    for i in range(N):
+        for j in range(N):
+            cov[i, j] = np.sum(joints[np.logical_and(states[:, i] == 1, states[:, j] == 1)]) - m[i] * m[j]
+    return m, cov
 
 
 def get_theo_joints(W, b, beta, M=1):
