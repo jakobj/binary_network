@@ -92,6 +92,36 @@ class BinaryMeanfield(object):
         return ((self.J).T*self.get_suszeptibility(h_mu, h_sigma2)).T
 
 
+    def get_m_corr_iter(self, mu0, lamb, C=None):
+        """Calculate correlations iteratively from mean rates
+        """
+        Dmu = 1e10
+        Dc = 1e10
+        if C is None:
+            C = np.zeros((self.N, self.N))
+        mu = mu0.copy()
+        C = C.copy()
+        for i, m_i in enumerate(mu):
+            C[i, i] = m_i * (1. - m_i)
+        while Dmu > 1e-10 or Dc > 1e-10:
+            mu_new = self.get_mu_meanfield(mu, C)
+            Dmu = np.max(abs(mu - mu_new))
+            mu = (1. - lamb) * mu + lamb * mu_new
+
+            h_mu = self.get_mu_input(mu)
+            h_sigma2 = self.get_sigma2_input(mu, C)
+            S = np.diag(self.get_suszeptibility(h_mu, h_sigma2))
+            W = np.dot(S, self.J)
+
+            WC = np.dot(W, C)
+            C_new = 0.5*WC + 0.5*WC.T
+            for i, m_i in enumerate(mu):
+                C_new[i, i] = m_i * (1. - m_i)
+            Dc = np.max(abs(C - C_new))
+            C = (1. - lamb) * C + lamb * C_new
+        return mu, C
+
+
     def get_corr_iter(self, mu, lamb, C=None):
         """Calculate correlations iteratively from mean rates
         """
@@ -125,7 +155,7 @@ class BinaryMeanfield(object):
             C = np.zeros((self.N, self.N))
         mu = mu0.copy()
         C = C.copy()
-        while Dmu > 1e-8:
+        while Dmu > 1e-7:
             for i, m_i in enumerate(mu):
                 C[i, i] = m_i * (1. - m_i)
             mu_new = self.get_mu_meanfield(mu, C)
