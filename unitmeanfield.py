@@ -36,7 +36,7 @@ class BinaryMeanfield(object):
         """
         h_mu = self.get_mu_input(mu0)
         h_sigma2 = self.get_sigma2_input(mu0, C)
-        return 0.5*scsp.erfc((-self.b-h_mu)/(np.sqrt(2.*h_sigma2)))
+        return 0.5 * scsp.erfc(-1.* (h_mu + self.b) / (np.sqrt(2. * h_sigma2)))
 
 
     def get_mu_input(self, mu):
@@ -78,25 +78,27 @@ class BinaryMeanfield(object):
         return ((self.J).T*self.get_suszeptibility(h_mu, h_sigma2)).T
 
 
-    def get_corr_iter(self, mu, lamb):
+    def get_corr_iter(self, mu, lamb, C=None):
         """Calculate correlations iteratively from mean rates
         """
         Dc = 1e10
-        C = np.zeros((self.N, self.N))
+        if C is None:
+            C = np.zeros((self.N, self.N))
+        mu = mu.copy()
+        C = C.copy()
         for i, m_i in enumerate(mu):
             C[i, i] = m_i * (1. - m_i)
         h_mu = self.get_mu_input(mu)
         h_sigma2 = self.get_sigma2_input(mu, C)
         S = np.diag(self.get_suszeptibility(h_mu, h_sigma2))
+        W = np.dot(S, self.J)
         while Dc > 1e-12:
-            W = np.dot(S, self.J)
             WC = np.dot(W, C)
             C_new = 0.5*WC + 0.5*WC.T
             for i, m_i in enumerate(mu):
                 C_new[i, i] = m_i * (1. - m_i)
             Dc = np.max(abs(C - C_new))
             C = (1. - lamb) * C + lamb * C_new
-
         return C
 
 
@@ -105,9 +107,10 @@ class BinaryMeanfield(object):
         network using meanfield approach
         """
         Dmu = 1e10
-        mu = mu0
         if C is None:
             C = np.zeros((self.N, self.N))
+        mu = mu0.copy()
+        C = C.copy()
         while Dmu > 1e-7:
             for i, m_i in enumerate(mu):
                 C[i, i] = m_i * (1. - m_i)
@@ -117,15 +120,19 @@ class BinaryMeanfield(object):
         return mu
 
 
-    def get_corr_eigen(self, mu):
+    def get_corr_eigen(self, mu, C=None):
         """use linearized approximation"""
 
-        # autocorr matrix
-        A = np.diag(mu * (1. - mu))
+        if C is None:
+            C = np.zeros((self.N, self.N))
+        # # autocorr matrix
+        # A = np.diag(mu * (1. - mu))
+        for i, m_i in enumerate(mu):
+            C[i, i] = m_i * (1. - m_i)
 
         # suszeptibility
         h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, A)
+        h_sigma2 = self.get_sigma2_input(mu, C)
         S = np.diag( self.get_suszeptibility(h_mu, h_sigma2))
         
         # linearized coupling matrix: multiply each row with repective susceptibility
@@ -143,6 +150,7 @@ class BinaryMeanfield(object):
         assert(abs(np.mean(diag_check)) < 1e-15), 'Error inverting effective coupling matrix M = (1 - W)'
 
         # calculate covariance matrix (see e.g. tn_corr script eq. 5.6.7)
+        A = np.diag(mu * (1. - mu))
         Ap = np.dot(V, np.dot(A, V.T))
         C = np.zeros((self.N, self.N), dtype=float)
         for i in xrange(0, self.N):
