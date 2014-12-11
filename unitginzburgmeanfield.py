@@ -43,7 +43,8 @@ class BinaryMeanfield(object):
         for i in xrange(self.N):
             def f(x):
                 return 1./(1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
-            mu[i] = scint.quad(f, -100., 100.)[0]
+            mu[i], error = scint.quad(f, -100., 100.)
+            assert(error < 1e-7), 'Integration error while determining mean activity.'
         return mu
 
 
@@ -67,18 +68,20 @@ class BinaryMeanfield(object):
         return sigma2_input
 
 
-    def get_suszeptibility(self, h_mu, h_sigma2):
+    def get_suszeptibility(self, mu, C):
         """
         Suszeptibility (i.e., derivative of Gain function) for Gaussian
         input with mean mu and standard deviation sigma
         Formula (8) in Helias14
         """
+        h_mu = self.get_mu_input(mu)
+        h_sigma2 = self.get_sigma2_input(mu, C)
         S = np.empty(self.N)
-        h_mu += self.b
         for i in xrange(self.N):
             def f(x):
-                return 1. / (1. + np.exp(-x))**2 * np.exp(-x) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
-            S[i] = scint.quad(f, -100., 100.)[0]
+                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-x) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i] - self.b[i])**2 / (2. * h_sigma2[i]))
+            S[i], error = scint.quad(f, -100., 100.)
+            assert(error < 1e-7), 'Integration error while determining suszeptibility.'
         return S
 
 
@@ -87,9 +90,8 @@ class BinaryMeanfield(object):
         Linearized population averaged weights
         Formula (10) in Helias14
         """
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        return ((self.J).T*self.get_suszeptibility(h_mu, h_sigma2)).T
+        S = np.diag(self.get_suszeptibility(mu, C))
+        return np.dot(S, self.J)
 
 
     def get_m_corr_iter(self, mu0, lamb, C=None):
@@ -108,11 +110,7 @@ class BinaryMeanfield(object):
             Dmu = np.max(abs(mu - mu_new))
             mu = (1. - lamb) * mu + lamb * mu_new
 
-            h_mu = self.get_mu_input(mu)
-            h_sigma2 = self.get_sigma2_input(mu, C)
-            S = np.diag(self.get_suszeptibility(h_mu, h_sigma2))
-            W = np.dot(S, self.J)
-
+            W = self.get_w_meanfield(mu, C)
             WC = np.dot(W, C)
             C_new = 0.5*WC + 0.5*WC.T
             for i, m_i in enumerate(mu):
@@ -132,9 +130,7 @@ class BinaryMeanfield(object):
         C = C.copy()
         for i, m_i in enumerate(mu):
             C[i, i] = m_i * (1. - m_i)
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        S = np.diag(self.get_suszeptibility(h_mu, h_sigma2))
+        S = np.diag(self.get_suszeptibility(mu, C))
         W = np.dot(S, self.J)
         while Dc > 1e-12:
             WC = np.dot(W, C)
@@ -175,9 +171,7 @@ class BinaryMeanfield(object):
             C[i, i] = m_i * (1. - m_i)
 
         # suszeptibility
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        S = np.diag( self.get_suszeptibility(h_mu, h_sigma2))
+        S = np.diag( self.get_suszeptibility(mu, C))
         
         # linearized coupling matrix: multiply each row with repective susceptibility
         W = np.dot(S, self.J)

@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import numpy.testing as nptest
+import scipy.integrate as scint
 
 import helper as bhlp
 import network as bnet
@@ -175,11 +176,17 @@ class UnitMeanfieldTestCase(unittest.TestCase):
         self.N = 12
         muJ = -0.4
         sigmaJ = 0.1
-        mu_target = 0.4
+        self.mu_target = 0.4
         self.beta = 1.
         self.J = bhlp.create_BM_weight_matrix_normal(self.N, muJ, sigmaJ)
-        self.b = bhlp.create_BM_biases_normal(self.N, muJ, mu_target)
+        self.b = bhlp.create_BM_biases_normal(self.N, muJ, self.mu_target)
         self.mf_net = ugbmf.BinaryMeanfield(self.J, self.b, self.beta)
+        # example mean activity and correlation
+        self.mu = np.random.uniform(0.2, 0.6, self.N)
+        self.C = np.random.normal(0., 0.02, (self.N, self.N))
+        for i in xrange(self.N):
+            self.C[i, i] = self.mu[i] * (1. - self.mu[i])
+
 
     def test_get_mu_input(self):
         mu = np.random.uniform(0.2, 0.6, self.N)
@@ -187,20 +194,50 @@ class UnitMeanfieldTestCase(unittest.TestCase):
         mu_input = self.mf_net.get_mu_input(mu)
         nptest.assert_array_almost_equal(expected_mu_input, mu_input)
 
+
     def test_get_sigma2_input(self):
-        mu = np.random.uniform(0.2, 0.6, self.N)
-        C = np.zeros((self.N, self.N))
-        for i in xrange(self.N):
-            C[i, i] = mu[i] * (1. - mu[i])
-        expected_sigma2_input = np.dot(self.J**2, C.diagonal())
-        sigma2_input = self.mf_net.get_sigma2_input(mu, C)
+        expected_sigma2_input = np.dot(self.J**2, self.C.diagonal())
+        sigma2_input = self.mf_net.get_sigma2_input(self.mu, np.diag(self.C.diagonal()))
         nptest.assert_array_almost_equal(expected_sigma2_input, sigma2_input)
-        C = np.random.normal(0., 0.2, (self.N, self.N))
-        for i in xrange(self.N):
-            C[i, i] = mu[i] * (1. - mu[i])
-        expected_sigma2_input = np.dot(self.J, np.dot(C, self.J.T)).diagonal()
-        sigma2_input = self.mf_net.get_sigma2_input(mu, C)
+        expected_sigma2_input = np.dot(self.J, np.dot(self.C, self.J.T)).diagonal()
+        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
         nptest.assert_array_almost_equal(expected_sigma2_input, sigma2_input)
+
+
+    def test_get_mu_meanfield(self):
+        mu_input = self.mf_net.get_mu_input(self.mu)
+        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
+        expected_m = np.zeros(self.N)
+        for i in xrange(self.N):
+            def f(x):
+                return 1. / (1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * sigma2_input[i]) * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
+            expected_m[i], error = scint.quad(f, -2e2, 2e2)
+            self.assertLess(error, 1e-7)
+        m = self.mf_net.get_mu_meanfield(self.mu, self.C)
+        nptest.assert_array_almost_equal(expected_m, m)
+
+
+    def test_get_suszeptibility(self):
+        # TODO calculate mean and sigma2 input inside get_suszeptibility
+        mu_input = self.mf_net.get_mu_input(self.mu)
+        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
+        expected_S = np.empty(self.N)
+        for i in xrange(self.N):
+            def f(x):
+                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-self.beta * x) * 1./np.sqrt(2. * np.pi * sigma2_input[i]) * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
+            expected_S[i], error = scint.quad(f, -2e2, 2e2)
+            self.assertLess(error, 1e-7)
+        S = self.mf_net.get_suszeptibility(self.mu, self.C)
+        nptest.assert_array_almost_equal(expected_S, S)
+
+
+    def test_get_w_meanfield(self):
+        S = self.mf_net.get_suszeptibility(self.mu, self.C)
+        expected_W = self.J.copy()
+        for i in xrange(self.N):
+            expected_W[i, :] = expected_W[i, :] * S[i]
+        W = self.mf_net.get_w_meanfield(self.mu, self.C)
+        nptest.assert_array_almost_equal(expected_W.flatten(), W.flatten())
 
 
 if __name__ == '__main__':
