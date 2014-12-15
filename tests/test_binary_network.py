@@ -317,17 +317,19 @@ class NetworkTestCase(unittest.TestCase):
         Nrec = 20
         steps = 5e4
 
-        def F1(x, beta):
-            return 0 if 1. / (1 + np.exp(-beta * x)) < np.random.rand() else 1
-
         def F2(x, beta):
             return 0 if 1. / (1 + np.exp(-beta * x + 0.7)) < np.random.rand() else 1
-        for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
+
+        for i, sim in enumerate([bnet.simulate, bnet.simulate_eve, bnet.simulate_eve_sparse]):
             if i == 0:
-                a_s = sim(W, b, sinit, steps, Nrec, [N1, N], [F1, F2])[1]
-            else:
+                a_s = sim(W, b, sinit, steps, Nrec, [N1, N], [hlp.Fsigma, F2])[1]
+            elif i == 1:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          Nrec, [N1, N], [F1, F2])[1]
+                          Nrec, [N1, N], [hlp.Fsigma, F2])[1]
+            elif i ==2:
+                s0, a_times, a_s = sim(W, b, tau, sinit, steps * tau / N,
+                                       [0, Nrec], [N1, N], [hlp.Fsigma, F2])
+                a_s = hlp.get_all_states_from_sparse(s0, a_s, 0)
             a_means = np.mean(a_s, axis=0)
             expected_means = np.ones(Nrec) * 1. / (1. + np.exp(-b[0]))
             nptest.assert_array_almost_equal(
@@ -365,6 +367,10 @@ class NetworkTestCase(unittest.TestCase):
         rNrec = [0, 2]
         s0, a_times, a_s = bnet.simulate_eve_sparse(
             W, b, tau, sinit, Tmax, rNrec, [N], [hlp.Fsigma], beta=beta)
+        self.assertGreater(np.min(a_times), 0.)
+        self.assertLess(np.min(a_times), tau)
+        self.assertLess(np.max(a_times), 1.005 * Tmax)
+        self.assertEqual(len(a_times), len(a_s))
         nptest.assert_array_equal(sinit, s0)
         joints = hlp.get_joints_sparse(s0, a_s, 0)
         expected_joints = hlp.get_theo_joints(W, b, beta)
