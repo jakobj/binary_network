@@ -178,21 +178,20 @@ class HelperTestCase(unittest.TestCase):
                 expected_joints, joints[i], decimal=2)
 
     def test_get_joints_sparse(self):
-        N = 3
+        N = 5
         steps = 1e5
         steps_warmup = 1e4
         a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
-        expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
-        joints = hlp.get_joints_sparse(np.array([0,0,0]), a_s, steps_warmup)
+        expected_joints = np.ones(2**N) * 1. / (2 ** N)
+        joints = hlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 3
-        N = 3
-        a_s = np.vstack([np.random.randint(0, M*N, steps), np.random.randint(0, 2, steps)]).T
+        a_s = np.vstack([np.random.randint(0, M * N, steps), np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
-        joints = hlp.get_joints_sparse(np.array([0]*M*N), a_s, steps_warmup, M)
-        expected_sum = np.ones(N)
+        joints = hlp.get_joints_sparse(np.zeros(M * N), a_s, steps_warmup, M)
+        expected_sum = np.ones(M)
         nptest.assert_array_almost_equal(expected_sum, np.sum(joints, axis=1))
         for i in range(M):
             nptest.assert_array_almost_equal(
