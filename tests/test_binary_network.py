@@ -179,8 +179,8 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_joints_sparse(self):
         N = 5
-        steps = 1e5
-        steps_warmup = 1e4
+        steps = 4e4
+        steps_warmup = 1e3
         a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
         expected_joints = np.ones(2**N) * 1. / (2 ** N)
@@ -196,6 +196,17 @@ class HelperTestCase(unittest.TestCase):
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
+        a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
+        a_s[:steps_warmup, 1] = 0
+        a_s[np.where(a_s[:, 0] == 4), 1] = 0
+        expected_joints = 2. *np.ones(2**N) * 1. / (2 ** N)
+        expected_joints[1::2] = 0.
+        joints = hlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
+        nptest.assert_array_equal(np.zeros(2**N/2), joints[1::2])
+        self.assertAlmostEqual(1., np.sum(joints))
+        nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+        joints = hlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup, prior='uniform')
+        nptest.assert_array_less(np.zeros(2**N), joints)
 
     def test_get_marginals(self):
         N = int(1e5)
@@ -281,6 +292,35 @@ class HelperTestCase(unittest.TestCase):
         sigma = hlp.get_sigma_input_from_beta(beta_expected)
         beta = hlp.get_beta_from_sigma_input(sigma)
         self.assertAlmostEqual(beta_expected, beta)
+
+    def test_euclidean_distance(self):
+        N = 25
+        x = np.random.rand(N)
+        y = np.random.rand(N)
+        expected_dist = np.sqrt(np.dot(x-y, x-y))
+        dist = hlp.get_euclidean_distance(x, y)
+        nptest.assert_array_almost_equal(expected_dist, dist)
+        y = -x
+        expected_dist = 2. * np.sqrt(np.sum(x**2))
+        dist = hlp.get_euclidean_distance(x, y)
+        nptest.assert_array_almost_equal(expected_dist, dist)
+        y = x
+        expected_dist = 0.
+        dist = hlp.get_euclidean_distance(x, y)
+        self.assertAlmostEqual(expected_dist, dist)
+
+    def test_adjusted_weights_and_bias(self):
+        N = 10
+        beta = 1.2
+        beta_eff = 0.5
+        J = hlp.create_BM_weight_matrix(N)
+        b = hlp.create_BM_biases(N)
+        b_eff = b - 20.
+        expected_J_eff = beta/beta_eff * J
+        expected_b_eff = beta/beta_eff * b + b_eff
+        J_eff, b_eff = hlp.get_adjusted_weights_and_bias(J, b, b_eff, beta_eff, beta)
+        nptest.assert_array_almost_equal(expected_J_eff, J_eff)
+        nptest.assert_array_almost_equal(expected_b_eff, b_eff)
 
 
 class NetworkTestCase(unittest.TestCase):
@@ -477,7 +517,7 @@ class NetworkTestCase(unittest.TestCase):
             [-1. * np.arange(tbin, tmax + tbin, tbin)[::-1], 0, np.arange(tbin, tmax + tbin, tbin)])
         expected_autof = expected_var * \
             np.exp(-1. * abs(expected_timelag) / tau)
-        expected_cross_brn = -0.001
+        expected_cross_brn = -0.0001
         expected_cross = 0.
         expected_crossf = np.zeros(len(expected_timelag))
 
@@ -500,8 +540,9 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
         self.assertLess(abs(np.sum(autof_brn - expected_autof)),
                         0.5 * np.sum(abs(autof_brn)))
-        self.assertTrue(expected_cross_brn >
-                        crossf_brn[abs(timelag_brn) < 1e-10][0])
+        self.assertLess(crossf_brn[abs(timelag_brn) < 1e-10][0],
+                        expected_cross_brn)
+
 
         # Poisson case (independent sources)
         W = np.zeros((N, N))

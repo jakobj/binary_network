@@ -43,7 +43,7 @@ class BinaryMeanfield(object):
         for i in xrange(self.N):
             def f(x):
                 return 1./(1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
-            mu[i], error = scint.quad(f, -100., 100.)
+            mu[i], error = scint.quad(f, -50., 50.)
             assert(error < 1e-7), 'Integration error while determining mean activity.'
         return mu
 
@@ -79,8 +79,8 @@ class BinaryMeanfield(object):
         S = np.empty(self.N)
         for i in xrange(self.N):
             def f(x):
-                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-x) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i] - self.b[i])**2 / (2. * h_sigma2[i]))
-            S[i], error = scint.quad(f, -100., 100.)
+                return 1. / (np.exp(self.beta * x) + np.exp(-self.beta * x) + 2) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i] - self.b[i])**2 / (2. * h_sigma2[i]))
+            S[i], error = scint.quad(f, -50., 50.)
             assert(error < 1e-7), 'Integration error while determining suszeptibility.'
         return S
 
