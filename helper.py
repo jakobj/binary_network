@@ -171,7 +171,7 @@ def get_joints(a_s, steps_warmup, M=1):
         return a_joints
 
 
-def get_joints_sparse(sinit, a_s, steps_warmup, M=1):
+def get_joints_sparse(sinit, a_s, steps_warmup, M=1, prior=None):
     steps_tot = len(a_s[steps_warmup:])
     N = len(sinit)/M
     a_joints = np.empty((M, 2**N))
@@ -179,8 +179,13 @@ def get_joints_sparse(sinit, a_s, steps_warmup, M=1):
     states = {}
     for i in range(M):
         cstate = sinit.copy()
-        for s in possible_states:
-            states[tuple(s)] = 0.
+        if prior is None:
+            for s in possible_states:
+                states[tuple(s)] = 0.
+        elif prior == 'uniform':
+            for s in possible_states:
+                states[tuple(s)] = 1.
+            steps_tot += len(possible_states)
         for step, (idx, sidx) in enumerate(a_s):
             cstate[idx] = sidx
             if step >= steps_warmup:
