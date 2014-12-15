@@ -23,22 +23,22 @@ class BinaryMeanfield(object):
     b is the bias vector (2d, corresponding to -1*threshold)
     """
 
-    def __init__(self, W, b, beta):
-        self.J = W
+    def __init__(self, J, b, beta):
+        self.J = J
         self.b = b
         self.N = len(b)
         self.beta = beta
         self.mu = np.zeros(self.N)
 
 
-    def get_mu_meanfield(self, mu0, C):
+    def get_mu_meanfield(self, mu, C):
         """
         Self-consistent rate
         Formula (7) in Helias14
         """
-        h_mu = self.get_mu_input(mu0)
+        h_mu = self.get_mu_input(mu)
         h_mu += self.b
-        h_sigma2 = self.get_sigma2_input(mu0, C)
+        h_sigma2 = self.get_sigma2_input(mu, C)
         mu = np.empty(self.N)
         for i in xrange(self.N):
             def f(x):
@@ -118,85 +118,3 @@ class BinaryMeanfield(object):
             Dc = np.max(abs(C - C_new))
             C = (1. - lamb) * C + lamb * C_new
         return mu, C
-
-
-    def get_corr_iter(self, mu, lamb, C=None):
-        """Calculate correlations iteratively from mean rates
-        """
-        Dc = 1e10
-        if C is None:
-            C = np.zeros((self.N, self.N))
-        mu = mu.copy()
-        C = C.copy()
-        for i, m_i in enumerate(mu):
-            C[i, i] = m_i * (1. - m_i)
-        S = np.diag(self.get_suszeptibility(mu, C))
-        W = np.dot(S, self.J)
-        while Dc > 1e-12:
-            WC = np.dot(W, C)
-            C_new = 0.5*WC + 0.5*WC.T
-            for i, m_i in enumerate(mu):
-                C_new[i, i] = m_i * (1. - m_i)
-            Dc = np.max(abs(C - C_new))
-            C = (1. - lamb) * C + lamb * C_new
-        return C
-
-
-    def get_m(self, mu0, lamb, C=None):
-        """Calculate mean activity in a recurrent
-        network using meanfield approach
-        """
-        Dmu = 1e10
-        if C is None:
-            C = np.zeros((self.N, self.N))
-        mu = mu0.copy()
-        C = C.copy()
-        while Dmu > 1e-7:
-            for i, m_i in enumerate(mu):
-                C[i, i] = m_i * (1. - m_i)
-            mu_new = self.get_mu_meanfield(mu, C)
-            Dmu = np.max(abs(mu - mu_new))
-            mu = (1. - lamb) * mu + lamb * mu_new
-        return mu
-
-
-    def get_corr_eigen(self, mu, C=None):
-        """use linearized approximation"""
-
-        if C is None:
-            C = np.zeros((self.N, self.N))
-        # # autocorr matrix
-        # A = np.diag(mu * (1. - mu))
-        for i, m_i in enumerate(mu):
-            C[i, i] = m_i * (1. - m_i)
-
-        # suszeptibility
-        S = np.diag( self.get_suszeptibility(mu, C))
-        
-        # linearized coupling matrix: multiply each row with repective susceptibility
-        W = np.dot(S, self.J)
-        M = np.eye(self.N) - W
-
-        # diagonalize the effective coupling matrix M = 1 - W
-        # determine left v and right u eigenvectors
-        lmbd, U = np.linalg.eig(M)
-        V = np.linalg.inv(U)
-
-        # check whether inversion makes sense
-        diag_check = np.dot(V, np.dot(M, U))
-        diag_check -= np.diag(diag_check.diagonal())
-        assert(abs(np.mean(diag_check)) < 1e-15), 'Error inverting effective coupling matrix M = (1 - W)'
-
-        # calculate covariance matrix (see e.g. tn_corr script eq. 5.6.7)
-        A = np.diag(mu * (1. - mu))
-        Ap = np.dot(V, np.dot(A, V.T))
-        C = np.zeros((self.N, self.N), dtype=float)
-        for i in xrange(0, self.N):
-            for j in xrange(0, self.N):
-                C += 2.*Ap[i,j]/(lmbd[i]+lmbd[j]) * np.outer(U.T[i],U.T[j])
-
-        # set autocorr
-        for i,m_i in enumerate(mu):
-            C[i,i] = m_i * (1. - m_i)
-
-        return C

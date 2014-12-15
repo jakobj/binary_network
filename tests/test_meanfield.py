@@ -210,7 +210,9 @@ class UnitMeanfieldTestCase(unittest.TestCase):
         expected_m = np.zeros(self.N)
         for i in xrange(self.N):
             def f(x):
-                return 1. / (1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * sigma2_input[i]) * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
+                return 1. / (1. + np.exp(-self.beta * x)) \
+                    * 1./np.sqrt(2. * np.pi * sigma2_input[i]) \
+                    * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
             expected_m[i], error = scint.quad(f, -2e2, 2e2)
             self.assertLess(error, 1e-7)
         m = self.mf_net.get_mu_meanfield(self.mu, self.C)
@@ -218,13 +220,14 @@ class UnitMeanfieldTestCase(unittest.TestCase):
 
 
     def test_get_suszeptibility(self):
-        # TODO calculate mean and sigma2 input inside get_suszeptibility
         mu_input = self.mf_net.get_mu_input(self.mu)
         sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
         expected_S = np.empty(self.N)
         for i in xrange(self.N):
             def f(x):
-                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-self.beta * x) * 1./np.sqrt(2. * np.pi * sigma2_input[i]) * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
+                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-self.beta * x) \
+                    * 1./np.sqrt(2. * np.pi * sigma2_input[i]) \
+                    * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
             expected_S[i], error = scint.quad(f, -2e2, 2e2)
             self.assertLess(error, 1e-7)
         S = self.mf_net.get_suszeptibility(self.mu, self.C)
@@ -238,6 +241,15 @@ class UnitMeanfieldTestCase(unittest.TestCase):
             expected_W[i, :] = expected_W[i, :] * S[i]
         W = self.mf_net.get_w_meanfield(self.mu, self.C)
         nptest.assert_array_almost_equal(expected_W.flatten(), W.flatten())
+
+
+    def test_m_corr_iter(self):
+        lamb = 0.5
+        # TODO rename function to get_theo_rates_covariances
+        expected_rates, expected_cov = bhlp.get_theo_covariances(self.J, self.b, self.beta)
+        rates, cov = self.mf_net.get_m_corr_iter(np.ones(self.N) * self.mu_target, lamb)
+        nptest.assert_array_almost_equal(expected_rates, rates, decimal=4)
+        nptest.assert_array_almost_equal(expected_cov.flatten(), cov.flatten(), decimal=3)
 
 
 if __name__ == '__main__':
