@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.special as scsp
-import scipy.optimize as scop
 
 """""""""""
 DISCLAIMER: SEVERELY OUTDATED DOCSTRINGS
@@ -22,20 +21,21 @@ class BinaryMeanfield(object):
     b is the bias vector (2d, corresponding to -1*threshold)
     """
 
-    def __init__(self, W, b):
-        self.J = W
+    def __init__(self, J, b, beta):
+        self.J = J
         self.b = b
         self.N = len(b)
+        self.beta = beta
         self.mu = np.zeros(self.N)
 
 
-    def get_mu_meanfield(self, mu0, C):
+    def get_mu_meanfield(self, mu, C):
         """
         Self-consistent rate
         Formula (7) in Helias14
         """
-        h_mu = self.get_mu_input(mu0)
-        h_sigma2 = self.get_sigma2_input(mu0, C)
+        h_mu = self.get_mu_input(mu)
+        h_sigma2 = self.get_sigma2_input(mu, C)
         return 0.5 * scsp.erfc(-1.* (h_mu + self.b) / (np.sqrt(2. * h_sigma2)))
 
 
@@ -56,16 +56,19 @@ class BinaryMeanfield(object):
         """
         assert(np.all(C.diagonal() >= 0.))
         sigma2_input = (np.dot(np.dot(self.J, C), self.J.T)).diagonal()
+        assert(np.all(sigma2_input >= 0.))
         return sigma2_input
 
 
-    def get_suszeptibility(self, mu, sigma2):
+    def get_suszeptibility(self, mu, C):
         """
         Suszeptibility (i.e., derivative of Gain function) for Gaussian
         input with mean mu and standard deviation sigma
         Formula (8) in Helias14
         """
-        return 1./np.sqrt(2.*np.pi*sigma2) * np.exp(-1.*(mu + self.b)**2 / (2.*sigma2))
+        h_mu = self.get_mu_input(mu)
+        h_sigma2 = self.get_sigma2_input(mu, C)
+        return 1. / np.sqrt(2. * np.pi * h_sigma2) * np.exp(-1. * (h_mu + self.b)**2 / (2. * h_sigma2))
 
 
     def get_w_meanfield(self, mu, C):
@@ -73,9 +76,8 @@ class BinaryMeanfield(object):
         Linearized population averaged weights
         Formula (10) in Helias14
         """
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        return ((self.J).T*self.get_suszeptibility(h_mu, h_sigma2)).T
+        S = np.diag(self.get_suszeptibility(mu, C))
+        return np.dot(S, self.J)
 
 
     def get_corr_iter(self, mu, lamb, C=None):
@@ -88,9 +90,7 @@ class BinaryMeanfield(object):
         C = C.copy()
         for i, m_i in enumerate(mu):
             C[i, i] = m_i * (1. - m_i)
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        S = np.diag(self.get_suszeptibility(h_mu, h_sigma2))
+        S = np.diag(self.get_suszeptibility(mu, C))
         W = np.dot(S, self.J)
         while Dc > 1e-12:
             WC = np.dot(W, C)
@@ -100,6 +100,32 @@ class BinaryMeanfield(object):
             Dc = np.max(abs(C - C_new))
             C = (1. - lamb) * C + lamb * C_new
         return C
+
+
+    def get_m_corr_iter(self, mu0, lamb, C=None):
+        """Calculate correlations iteratively from mean rates
+        """
+        Dmu = 1e10
+        Dc = 1e10
+        if C is None:
+            C = np.zeros((self.N, self.N))
+        mu = mu0.copy()
+        C = C.copy()
+        for i, m_i in enumerate(mu):
+            C[i, i] = m_i * (1. - m_i)
+        while Dmu > 1e-10 or Dc > 1e-10:
+            mu_new = self.get_mu_meanfield(mu, C)
+            Dmu = np.max(abs(mu - mu_new))
+            mu = (1. - lamb) * mu + lamb * mu_new
+
+            W = self.get_w_meanfield(mu, C)
+            WC = np.dot(W, C)
+            C_new = 0.5*WC + 0.5*WC.T
+            for i, m_i in enumerate(mu):
+                C_new[i, i] = m_i * (1. - m_i)
+            Dc = np.max(abs(C - C_new))
+            C = (1. - lamb) * C + lamb * C_new
+        return mu, C
 
 
     def get_m(self, mu0, lamb, C=None):
@@ -131,9 +157,7 @@ class BinaryMeanfield(object):
             C[i, i] = m_i * (1. - m_i)
 
         # suszeptibility
-        h_mu = self.get_mu_input(mu)
-        h_sigma2 = self.get_sigma2_input(mu, C)
-        S = np.diag( self.get_suszeptibility(h_mu, h_sigma2))
+        S = np.diag( self.get_suszeptibility(mu, C))
         
         # linearized coupling matrix: multiply each row with repective susceptibility
         W = np.dot(S, self.J)
