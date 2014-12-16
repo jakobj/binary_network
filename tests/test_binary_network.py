@@ -90,7 +90,7 @@ class HelperTestCase(unittest.TestCase):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
         s = np.array([1, 0])
-        beta = 1.35
+        beta = .5
         expected_energy = -1. * beta * \
             np.sum(0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
         energy = hlp.get_energy(W, b, s, beta)
@@ -128,7 +128,7 @@ class HelperTestCase(unittest.TestCase):
     def test_get_theo_marginals(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
-        beta = 0.8
+        beta = 0.5
         N = len(b)
         expected_marginals = []
         states = hlp.get_states(N)
@@ -311,7 +311,7 @@ class HelperTestCase(unittest.TestCase):
 
     def test_adjusted_weights_and_bias(self):
         N = 10
-        beta = 1.2
+        beta = .5
         beta_eff = 0.5
         J = hlp.create_BM_weight_matrix(N)
         b = hlp.create_BM_biases(N)
@@ -330,6 +330,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N) * 0.2
         sinit = np.random.randint(0, 2, N)
+        beta = 0.5
         tau = 10.
         Nrec = 20
         steps = 5e4
@@ -337,14 +338,16 @@ class NetworkTestCase(unittest.TestCase):
         expected_variance = hlp.get_sigma2(expected_mean)
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
-                a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma])[1]
+                a_s = sim(W, b, sinit, steps, Nrec, [N], [hlp.Fsigma],
+                          beta=beta)[1]
             else:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          Nrec, [N], [hlp.Fsigma])[1]
+                          Nrec, [N], [hlp.Fsigma], beta=beta)[1]
             mean = np.mean(a_s)
             variance = np.var(a_s)
             self.assertAlmostEqual(expected_mean, mean, places=1)
             self.assertAlmostEqual(expected_variance, variance, places=1)
+
 
     def test_multiple_activation_functions(self):
         N = 100
@@ -355,31 +358,36 @@ class NetworkTestCase(unittest.TestCase):
         sinit = np.random.randint(0, 2, N)
         tau = 10.
         Nrec = 20
-        steps = 5e4
+        steps = 8e4
+        beta = 0.7
 
         def F2(x, beta):
             return 0 if 1. / (1 + np.exp(-beta * x + 0.7)) < np.random.rand() else 1
 
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve, bnet.simulate_eve_sparse]):
             if i == 0:
-                a_s = sim(W, b, sinit, steps, Nrec, [N1, N], [hlp.Fsigma, F2])[1]
+                a_s = sim(W, b, sinit, steps, Nrec, [N1, N],
+                          [hlp.Fsigma, F2], beta)[1]
             elif i == 1:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          Nrec, [N1, N], [hlp.Fsigma, F2])[1]
+                          Nrec, [N1, N], [hlp.Fsigma, F2],
+                          beta=beta)[1]
             elif i ==2:
                 s0, a_times, a_s = sim(W, b, tau, sinit, steps * tau / N,
-                                       [0, Nrec], [N1, N], [hlp.Fsigma, F2])
+                                       [0, Nrec], [N1, N], [hlp.Fsigma, F2],
+                                       beta=beta)
                 a_s = hlp.get_all_states_from_sparse(s0, a_s, 0)
             a_means = np.mean(a_s, axis=0)
             expected_means = np.ones(Nrec) * 1. / (1. + np.exp(-b[0]))
             nptest.assert_array_almost_equal(
                 expected_means, a_means, decimal=1)
 
+
     def test_joint_distribution(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0., 0.6])
-        beta = 0.8
+        beta = 0.5
         sinit = np.random.randint(0, 2, N)
         steps = 5e4
         tau = 10.
@@ -396,6 +404,7 @@ class NetworkTestCase(unittest.TestCase):
             nptest.assert_array_almost_equal(
                 expected_joints, joints, decimal=1)
 
+
     def test_sparse_simulation(self):
         N = 2
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -409,12 +418,13 @@ class NetworkTestCase(unittest.TestCase):
             W, b, tau, sinit, Tmax, rNrec, [N], [hlp.Fsigma], beta=beta)
         self.assertGreater(np.min(a_times), 0.)
         self.assertLess(np.min(a_times), tau)
-        self.assertLess(np.max(a_times), 1.005 * Tmax)
+        self.assertLess(np.max(a_times), 1.01 * Tmax)
         self.assertEqual(len(a_times), len(a_s))
         nptest.assert_array_equal(sinit, s0)
         joints = hlp.get_joints_sparse(s0, a_s, 0)
         expected_joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+
 
     def test_marginal_distribution(self):
         N = 2
@@ -437,6 +447,7 @@ class NetworkTestCase(unittest.TestCase):
             nptest.assert_array_almost_equal(
                 expected_marginals, marginals, decimal=2)
 
+
     def test_bin_binary_data(self):
         N = 2
         tbin = 0.04
@@ -452,6 +463,7 @@ class NetworkTestCase(unittest.TestCase):
         times_bin, st = hlp.bin_binary_data(times, a_s, tbin, 0., time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
+
 
     def test_auto_corr(self):
         N = 58
@@ -502,6 +514,7 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
         self.assertTrue(abs(np.sum(abs(autof - expected_autof)))
                         < 0.5 * np.sum(abs(autof)))
+
 
     def test_cross_corr(self):
         N = 60
@@ -558,6 +571,7 @@ class NetworkTestCase(unittest.TestCase):
         self.assertAlmostEqual(
             expected_cross, abs(crossf[abs(timelag) < 1e-10][0]), places=2)
 
+
     def test_input(self):
         N = 12
         Nnoise = 120
@@ -567,6 +581,7 @@ class NetworkTestCase(unittest.TestCase):
         time = 1.5e4
         mu_target = 0.42
         Nrec_ui = N
+        beta = 0.5
 
         w = 0.2
         g = 8.
@@ -591,11 +606,13 @@ class NetworkTestCase(unittest.TestCase):
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
                 a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = sim(
-                    W_brn, b_brn, sinit.copy(), time, Nrec, [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui)
+                    W_brn, b_brn, sinit.copy(), time, Nrec,
+                    [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui, beta=beta)
                 steps_warmup = 0.1 * time/(N+Nnoise) * N
             elif i == 1:
                 a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = sim(
-                    W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui)
+                    W_brn, b_brn, tau, sinit.copy(), time, Nrec,
+                    [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui, beta=beta)
                 steps_warmup = 0.1 * Nrec_ui * time/tau
             a_ui_brn = a_ui_brn[steps_warmup:]
             self.assertLess(abs(np.mean(a_ui_brn) + w / 2. - expected_mu_input),
@@ -621,9 +638,9 @@ class NetworkTestCase(unittest.TestCase):
                 steps_warmup = 0.1 * Nrec_ui * time/tau
             a_ui = a_ui[steps_warmup:]
             self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
-                            0.04 * abs(expected_mu_input))
+                            0.05 * abs(expected_mu_input))
             self.assertLess(abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input),
-                            0.04 * expected_std_input)
+                            0.05 * expected_std_input)
 
 
 if __name__ == '__main__':
