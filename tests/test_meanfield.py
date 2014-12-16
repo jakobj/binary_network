@@ -170,13 +170,13 @@ class MeanfieldTestCase(unittest.TestCase):
                                delta=abs(0.04 * std_iter_input))
 
 
-class UnitMeanfieldTestCase(unittest.TestCase):
+class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.N = 12
+        self.N = 17
         muJ = -0.4
         sigmaJ = 0.1
-        self.mu_target = 0.4
+        self.mu_target = 0.48
         self.beta = 1.
         self.J = bhlp.create_BM_weight_matrix_normal(self.N, muJ, sigmaJ)
         self.b = bhlp.create_BM_biases_normal(self.N, muJ, self.mu_target)
@@ -213,10 +213,10 @@ class UnitMeanfieldTestCase(unittest.TestCase):
                 return 1. / (1. + np.exp(-self.beta * x)) \
                     * 1./np.sqrt(2. * np.pi * sigma2_input[i]) \
                     * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
-            expected_m[i], error = scint.quad(f, -2e2, 2e2)
+            expected_m[i], error = scint.quad(f, -3e2, 3e2)
             self.assertLess(error, 1e-7)
         m = self.mf_net.get_mu_meanfield(self.mu, self.C)
-        nptest.assert_array_almost_equal(expected_m, m)
+        nptest.assert_array_almost_equal(expected_m, m, decimal=6)
 
 
     def test_get_suszeptibility(self):
@@ -231,7 +231,7 @@ class UnitMeanfieldTestCase(unittest.TestCase):
             expected_S[i], error = scint.quad(f, -2e2, 2e2)
             self.assertLess(error, 1e-7)
         S = self.mf_net.get_suszeptibility(self.mu, self.C)
-        nptest.assert_array_almost_equal(expected_S, S)
+        nptest.assert_array_almost_equal(expected_S, S, decimal=6)
 
 
     def test_get_w_meanfield(self):
@@ -250,6 +250,8 @@ class UnitMeanfieldTestCase(unittest.TestCase):
         rates, cov = self.mf_net.get_m_corr_iter(np.ones(self.N) * self.mu_target, lamb)
         nptest.assert_array_almost_equal(expected_rates, rates, decimal=4)
         nptest.assert_array_almost_equal(expected_cov.flatten(), cov.flatten(), decimal=3)
+
+
 
 
 if __name__ == '__main__':
