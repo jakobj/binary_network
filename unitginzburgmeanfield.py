@@ -77,6 +77,7 @@ class BinaryMeanfield(object):
         """
         assert(np.all(C.diagonal() >= 0.))
         sigma2_input = (np.dot(np.dot(self.J, C), self.J.T)).diagonal()
+        assert(np.all(sigma2_input >= 0.))
         return sigma2_input
 
 
