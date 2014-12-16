@@ -49,7 +49,7 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
     maxsteps = int(np.ceil(1.*N*time/tau))
     s = sinit
     step = 1
-    maxrelsteps = int(np.ceil(1.1*Nrec*time/tau))
+    maxrelsteps = int(np.ceil(1.3*Nrec*time/tau))
     relstep = 1
     a_s = np.empty((maxrelsteps, Nrec))
     a_steps = np.zeros(maxrelsteps)
@@ -57,7 +57,7 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
         a_s[0] = s[:Nrec]
         a_steps[0] = 0.
     if record_ui:
-        maxrelsteps_ui = int(np.ceil(1.1*Nrec_ui*time/tau))
+        maxrelsteps_ui = int(np.ceil(1.3*Nrec_ui*time/tau))
         relstep_ui = 1
         a_ui = np.empty((maxrelsteps_ui, Nrec_ui))
         a_steps_ui = np.zeros(maxrelsteps_ui)
