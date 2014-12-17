@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.special as scsp
-import scipy.optimize as scop
 import scipy.integrate as scint
 
 """""""""""
@@ -101,7 +99,7 @@ class BinaryMeanfield(object):
         for i in xrange(self.N):
             # Numerical integration of derivative of activation function
             def f(x):
-                return 1. / (np.exp(self.beta * x) + np.exp(-self.beta * x) + 2) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
+                return self.beta / (np.exp(self.beta * x) + np.exp(-self.beta * x) + 2) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
             S[i], error = scint.quad(f, -50., 50.)
             assert(error < 1e-7), 'Integration error while determining suszeptibility.'
         return S
