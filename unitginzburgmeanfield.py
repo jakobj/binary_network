@@ -38,19 +38,19 @@ class BinaryMeanfield(object):
         h_mu += self.b
         h_sigma2 = self.get_sigma2_input(mu, C)
         # Taylor expansion of 1/(1 + exp(-beta*x)) around h_mu
-        # eb = np.exp(self.beta * h_mu)
-        # C0 = eb/(eb + 1.)
-        # C2 = (eb**2 - eb) / (2. * (eb + 1.)**3) * self.beta**2
-        # C4 = (eb**4 - 11. * eb**3 + 11. * eb**2 - eb) \
-        #      / (24. * (eb + 1.)**5) * self.beta**4
-        # mu = C0 - C2 * h_sigma2 - C4 * 3. * h_sigma2**2
-        mu = np.empty(self.N)
-        for i in xrange(self.N):
-            # Numerical integration of activation function
-            def f(x):
-                return 1./(1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
-            mu[i], error = scint.quad(f, -50., 50.)
-            assert(error < 1e-7), 'Integration error while determining mean activity.'
+        eb = np.exp(self.beta * h_mu)
+        C0 = eb/(eb + 1.)
+        C2 = (eb**2 - eb) / (2. * (eb + 1.)**3) * self.beta**2
+        C4 = (eb**4 - 11. * eb**3 + 11. * eb**2 - eb) \
+             / (24. * (eb + 1.)**5) * self.beta**4
+        mu = C0 - C2 * h_sigma2 - C4 * 3. * h_sigma2**2
+        # mu = np.empty(self.N)
+        # for i in xrange(self.N):
+        #     # Numerical integration of activation function
+        #     def f(x):
+        #         return 1./(1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
+        #     mu[i], error = scint.quad(f, -50., 50.)
+        #     assert(error < 1e-7), 'Integration error while determining mean activity.'
             # Sommerfeld expansion
             # WARNING: seems to fail due to size of h_sigma2
             # mu[i] = 0.5 * (1. + scsp.erf(h_mu[i]/np.sqrt(h_sigma2[i]))) \
@@ -88,20 +88,20 @@ class BinaryMeanfield(object):
         h_mu = self.get_mu_input(mu)
         h_mu += self.b
         h_sigma2 = self.get_sigma2_input(mu, C)
-        # Taylor expansion of 1/(1+exp(-beta*x))^2*exp(-beta*x) around h_mu
-        # eb = np.exp(self.beta * h_mu)
-        # C0 = eb / (eb + 1)**2
-        # C2 = (eb**3 - 4. * eb**2 + eb) / (2. * (eb + 1.)**4) * self.beta**2
-        # C4 = (eb**5 - 26 * eb**4 + 66 * eb**3 - 26 * eb**2 + eb) \
-        #      / (24. * (eb + 1)**6) * self.beta**4
-        # S = C0 +  C2 * h_sigma2 + C4 * 3. * h_sigma2**2
-        S = np.empty(self.N)
-        for i in xrange(self.N):
-            # Numerical integration of derivative of activation function
-            def f(x):
-                return self.beta / (np.exp(self.beta * x) + np.exp(-self.beta * x) + 2) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
-            S[i], error = scint.quad(f, -50., 50.)
-            assert(error < 1e-7), 'Integration error while determining suszeptibility.'
+        # Taylor expansion of beta/(1+exp(-beta*x))^2*exp(-beta*x) around h_mu
+        eb = np.exp(self.beta * h_mu)
+        C0 = eb / (eb + 1)**2
+        C2 = (eb**3 - 4. * eb**2 + eb) / (2. * (eb + 1.)**4) * self.beta**2
+        C4 = (eb**5 - 26 * eb**4 + 66 * eb**3 - 26 * eb**2 + eb) \
+             / (24. * (eb + 1)**6) * self.beta**4
+        S = self.beta * (C0 +  C2 * h_sigma2 + C4 * 3. * h_sigma2**2)
+        # S = np.empty(self.N)
+        # for i in xrange(self.N):
+        #     # Numerical integration of derivative of activation function
+        #     def f(x):
+        #         return self.beta / (np.exp(self.beta * x) + np.exp(-self.beta * x) + 2) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
+        #     S[i], error = scint.quad(f, -50., 50.)
+        #     assert(error < 1e-7), 'Integration error while determining suszeptibility.'
         return S
 
 
@@ -125,7 +125,7 @@ class BinaryMeanfield(object):
         C = C.copy()
         for i, m_i in enumerate(mu):
             C[i, i] = m_i * (1. - m_i)
-        while Dmu > 1e-10 or Dc > 1e-10:
+        while Dmu > 1e-11 or Dc > 1e-11:
             mu_new = self.get_mu_meanfield(mu, C)
             Dmu = np.max(abs(mu - mu_new))
             mu = (1. - lamb) * mu + lamb * mu_new
