@@ -177,7 +177,7 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
         muJ = -0.4
         sigmaJ = 0.1
         self.mu_target = 0.48
-        self.beta = 1.
+        self.beta = .4
         self.J = bhlp.create_BM_weight_matrix_normal(self.N, muJ, sigmaJ)
         self.b = bhlp.create_BM_biases_normal(self.N, muJ, self.mu_target)
         self.mf_net = ugbmf.BinaryMeanfield(self.J, self.b, self.beta)
@@ -225,7 +225,7 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
         expected_S = np.empty(self.N)
         for i in xrange(self.N):
             def f(x):
-                return 1. / (1. + np.exp(-self.beta * x))**2 * np.exp(-self.beta * x) \
+                return self.beta / (1. + np.exp(-self.beta * x))**2 * np.exp(-self.beta * x) \
                     * 1./np.sqrt(2. * np.pi * sigma2_input[i]) \
                     * np.exp(-(x - mu_input[i] - self.b[i])**2 / (2 * sigma2_input[i]))
             expected_S[i], error = scint.quad(f, -2e2, 2e2)
