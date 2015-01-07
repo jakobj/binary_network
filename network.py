@@ -107,9 +107,9 @@ def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
     step = 1
     maxrelsteps = int(np.ceil(1.3 * Nrec * time / tau))
     relstep = 0
-    a_s = np.empty((maxrelsteps, 2))
+    a_s = np.empty((maxrelsteps, 2), dtype=int)
     a_steps = np.zeros(maxrelsteps)
-    updates = list(zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N))))
+    updates = list(zip(np.random.exponential(tau, N), np.random.permutation(np.arange(0, N, dtype=int))))
     hq.heapify(updates)
     while step < maxsteps:
         time, idx = hq.heappop(updates)
