@@ -171,6 +171,12 @@ def get_joints(a_s, steps_warmup, M=1):
         return a_joints
 
 
+def get_steps_warmup(rNrec, Twarmup, tau):
+    Nrec = rNrec[1] - rNrec[0]
+    assert(Nrec >= 0)
+    return int(np.ceil(1.*Nrec*Twarmup/tau))
+
+
 def get_joints_sparse(sinit, a_s, steps_warmup, M=1, prior=None):
     steps_tot = len(a_s[steps_warmup:])
     N = len(sinit)/M
