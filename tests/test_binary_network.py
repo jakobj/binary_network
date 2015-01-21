@@ -74,6 +74,25 @@ class HelperTestCase(unittest.TestCase):
             self.assertAlmostEqual(
                 1. * len(l[l > 0]) / len(l[l < 0]), gamma / (1. - gamma))
 
+    def test_indep_noise_weight_matrix(self):
+        Knoise = 100
+        N = 3
+        w = 0.2
+        g = 6
+        gamma = 0.3
+        W = hlp.create_indep_noise_connectivity_matrix(
+            N, Knoise, gamma, g, w)
+        KEnoise = int(gamma * Knoise)
+        KInoise = int(Knoise - KEnoise)
+        for l in W:
+            self.assertEqual(len(l[l > 0]), KEnoise)
+            self.assertAlmostEqual(np.sum(l[l > 0]), KEnoise * w)
+            self.assertEqual(len(l[l < 0]), KInoise)
+            self.assertAlmostEqual(
+                np.sum(l[l < 0]), -1. * KInoise * w * g)
+            self.assertAlmostEqual(
+                1. * len(l[l > 0]) / len(l[l < 0]), 1. * KEnoise / KInoise)
+
     def test_noise_recurrent_weight_matrix(self):
         Nnoise = 100
         N = 200

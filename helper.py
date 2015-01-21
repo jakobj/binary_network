@@ -65,6 +65,18 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_indep_noise_connectivity_matrix(Nbm, Knoise, gamma, g, w):
+    Nnoise = Nbm * Knoise
+    W = np.zeros((Nbm, Nnoise))
+    KE = int(gamma * Knoise)
+    for l in range(Nbm):
+        indE = np.arange(l*Knoise, l*Knoise + KE)
+        W[l, indE] = w
+        indI = np.arange(l*Knoise + KE, (l+1) * Knoise)
+        W[l, indI] = -g * w
+    return W
+
+
 def create_noise_recurrent_connectivity_matrix(Nbm, Nnoise, epsilon):
     W = np.zeros((Nnoise, Nbm))
     K = epsilon*Nbm
