@@ -197,16 +197,16 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
 
     def test_get_sigma2_input(self):
         expected_sigma2_input = np.dot(self.J**2, self.C.diagonal())
-        sigma2_input = self.mf_net.get_sigma2_input(self.mu, np.diag(self.C.diagonal()))
+        sigma2_input = self.mf_net.get_sigma2_input(np.diag(self.C.diagonal()))
         nptest.assert_array_almost_equal(expected_sigma2_input, sigma2_input)
         expected_sigma2_input = np.dot(self.J, np.dot(self.C, self.J.T)).diagonal()
-        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
+        sigma2_input = self.mf_net.get_sigma2_input(self.C)
         nptest.assert_array_almost_equal(expected_sigma2_input, sigma2_input)
 
 
     def test_get_mu_meanfield(self):
         mu_input = self.mf_net.get_mu_input(self.mu)
-        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
+        sigma2_input = self.mf_net.get_sigma2_input(self.C)
         expected_m = np.zeros(self.N)
         for i in xrange(self.N):
             def f(x):
@@ -221,7 +221,7 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
 
     def test_get_suszeptibility(self):
         mu_input = self.mf_net.get_mu_input(self.mu)
-        sigma2_input = self.mf_net.get_sigma2_input(self.mu, self.C)
+        sigma2_input = self.mf_net.get_sigma2_input(self.C)
         expected_S = np.empty(self.N)
         for i in xrange(self.N):
             def f(x):

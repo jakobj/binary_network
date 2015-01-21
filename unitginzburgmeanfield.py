@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.integrate as scint
+# import scipy.integrate as scint
 
 """""""""""
 DISCLAIMER: SEVERELY OUTDATED DOCSTRINGS
@@ -36,7 +36,7 @@ class BinaryMeanfield(object):
         """
         h_mu = self.get_mu_input(mu)
         h_mu += self.b
-        h_sigma2 = self.get_sigma2_input(mu, C)
+        h_sigma2 = self.get_sigma2_input(C)
         # Taylor expansion of 1/(1 + exp(-beta*x)) around h_mu
         eb = np.exp(self.beta * h_mu)
         C0 = eb/(eb + 1.)
@@ -66,7 +66,7 @@ class BinaryMeanfield(object):
         return np.dot(self.J, mu)
 
 
-    def get_sigma2_input(self, mu, C):
+    def get_sigma2_input(self, C):
         """
         Standard deviation of input given presynaptic activity mu
         (and correlations C)
@@ -87,7 +87,7 @@ class BinaryMeanfield(object):
         """
         h_mu = self.get_mu_input(mu)
         h_mu += self.b
-        h_sigma2 = self.get_sigma2_input(mu, C)
+        h_sigma2 = self.get_sigma2_input(C)
         # Taylor expansion of beta/(1+exp(-beta*x))^2*exp(-beta*x) around h_mu
         eb = np.exp(self.beta * h_mu)
         C0 = eb / (eb + 1)**2
@@ -125,7 +125,7 @@ class BinaryMeanfield(object):
         C = C.copy()
         for i, m_i in enumerate(mu):
             C[i, i] = m_i * (1. - m_i)
-        while Dmu > 1e-11 or Dc > 1e-11:
+        while Dmu > 1e-9 or Dc > 1e-9:
             mu_new = self.get_mu_meanfield(mu, C)
             Dmu = np.max(abs(mu - mu_new))
             mu = (1. - lamb) * mu + lamb * mu_new
