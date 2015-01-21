@@ -363,7 +363,7 @@ class NetworkTestCase(unittest.TestCase):
                           beta=beta)[1]
             else:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          Nrec, [N], [hlp.Fsigma], beta=beta)[1]
+                          [0, Nrec], [N], [hlp.Fsigma], beta=beta)[1]
             mean = np.mean(a_s)
             variance = np.var(a_s)
             self.assertAlmostEqual(expected_mean, mean, places=1)
@@ -391,7 +391,7 @@ class NetworkTestCase(unittest.TestCase):
                           [hlp.Fsigma, F2], beta)[1]
             elif i == 1:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          Nrec, [N1, N], [hlp.Fsigma, F2],
+                          [0, Nrec], [N1, N], [hlp.Fsigma, F2],
                           beta=beta)[1]
             elif i ==2:
                 s0, a_times, a_s = sim(W, b, tau, sinit, steps * tau / N,
@@ -419,7 +419,7 @@ class NetworkTestCase(unittest.TestCase):
                                     Nrec, [N], [hlp.Fsigma], beta=beta)
             else:
                 a_states, a_s = sim(W, b, tau, sinit, steps *
-                                    tau / N, Nrec, [N], [hlp.Fsigma], beta=beta)
+                                    tau / N, [0, Nrec], [N], [hlp.Fsigma], beta=beta)
             joints = hlp.get_joints(a_s, 0)
             expected_joints = hlp.get_theo_joints(W, b, beta)
             nptest.assert_array_almost_equal(
@@ -461,7 +461,7 @@ class NetworkTestCase(unittest.TestCase):
                 a_s = sim(W, b, sinit, steps, Nrec,
                           [N], [hlp.Fsigma], beta=beta)[1]
             else:
-                a_s = sim(W, b, tau, sinit, steps * tau / N, Nrec,
+                a_s = sim(W, b, tau, sinit, steps * tau / N, [0, Nrec],
                           [N], [hlp.Fsigma], beta=beta)[1]
             marginals = hlp.get_marginals(a_s, 0)
             expected_marginals = hlp.get_theo_marginals(W, b, beta)
@@ -511,7 +511,7 @@ class NetworkTestCase(unittest.TestCase):
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
         a_times_brn, a_s_brn = bnet.simulate_eve(
-            W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
+            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.theta])
         self.assertAlmostEqual(
             mu_target, np.mean(a_s_brn), delta=0.1 * np.mean(a_s_brn))
         times_bin_brn, st_brn = hlp.bin_binary_data(
@@ -526,7 +526,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N) * hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(
-            W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
+            W, b, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Fsigma])
         self.assertAlmostEqual(
             mu_target, np.mean(a_s), delta=0.1 * np.mean(a_s))
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, 0., time)
@@ -565,7 +565,7 @@ class NetworkTestCase(unittest.TestCase):
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
         a_times_brn, a_s_brn = bnet.simulate_eve(
-            W_brn, b_brn, tau, sinit.copy(), time, Nrec, [N], [hlp.theta])
+            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.theta])
         self.assertTrue(abs(np.mean(a_s_brn) - mu_target) < 0.1 * mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(
             a_times_brn, a_s_brn, tbin, 0., time)
@@ -582,7 +582,7 @@ class NetworkTestCase(unittest.TestCase):
         W = np.zeros((N, N))
         b = np.ones(N) * hlp.sigmainv(mu_target)
         a_times, a_s = bnet.simulate_eve(
-            W, b, tau, sinit.copy(), time, Nrec, [N], [hlp.Fsigma])
+            W, b, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Fsigma])
         self.assertTrue(abs(np.mean(a_s) - mu_target) < 0.1 * mu_target)
         times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, 0., time)
         timelag, autof, crossf = hlp.crosscorrf(times_bin, st[:30], tmax)
@@ -632,7 +632,7 @@ class NetworkTestCase(unittest.TestCase):
                 steps_warmup = 0.1 * time/(N+Nnoise) * N
             elif i == 1:
                 a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = sim(
-                    W_brn, b_brn, tau, sinit.copy(), time, Nrec,
+                    W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec],
                     [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui, beta=beta)
                 steps_warmup = 0.1 * Nrec_ui * time/tau
             a_ui_brn = a_ui_brn[steps_warmup:]
@@ -655,7 +655,7 @@ class NetworkTestCase(unittest.TestCase):
                 steps_warmup = 0.1 * time/(N+Nnoise) * N
             elif i == 1:
                 a_times, a_s, a_times_ui, a_ui = sim(
-                    W, b, tau, sinit.copy(), time, Nrec, [N, N + Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=Nrec_ui)
+                    W, b, tau, sinit.copy(), time, [0, Nrec], [N, N + Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=Nrec_ui)
                 steps_warmup = 0.1 * Nrec_ui * time/tau
             a_ui = a_ui[steps_warmup:]
             self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
