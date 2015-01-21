@@ -42,7 +42,8 @@ def simulate(W, b, sinit, steps, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
         return a_steps, a_s
 
 
-def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
+def simulate_eve(W, b, tau, sinit, time, rNrec, l_N, l_F, Nrec_ui=0, beta=1.):
+    Nrec = rNrec[1] - rNrec[0]
     record_s = True if Nrec > 0 else False
     record_ui = True if Nrec_ui > 0 else False
     N = len(b)
@@ -54,7 +55,7 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
     a_s = np.empty((maxrelsteps, Nrec))
     a_steps = np.zeros(maxrelsteps)
     if record_s:
-        a_s[0] = s[:Nrec]
+        a_s[0] = s[rNrec[0]:rNrec[1]]
         a_steps[0] = 0.
     if record_ui:
         maxrelsteps_ui = int(np.ceil(1.3*Nrec_ui*time/tau))
@@ -79,8 +80,8 @@ def simulate_eve(W, b, tau, sinit, time, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
             relstep_ui += 1
         ui = np.dot(W[idx,:], s) + b[idx]
         s[idx] = l_F[idF](ui, beta)
-        if record_s and idx < Nrec:
-            a_s[relstep] = s[:Nrec]
+        if record_s and idx >= rNrec[0] and idx < rNrec[1]:
+            a_s[relstep] = s[rNrec[0]:rNrec[1]]
             a_steps[relstep] = time
             relstep += 1
         hq.heappush(updates, (time+np.random.exponential(tau), idx))
