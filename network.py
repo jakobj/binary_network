@@ -47,6 +47,7 @@ def simulate_eve(W, b, tau, sinit, time, rNrec, l_N, l_F, Nrec_ui=0, beta=1.):
     record_s = True if Nrec > 0 else False
     record_ui = True if Nrec_ui > 0 else False
     N = len(b)
+    print '[binary_network] Simulating %d nodes.'%(N)
     maxsteps = int(np.ceil(1.*N*time/tau))
     s = sinit
     step = 1
