@@ -1,5 +1,6 @@
 import numpy as np
 import heapq as hq
+import time as pytime
 
 def simulate(W, b, sinit, steps, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
     record_ui = True if Nrec_ui > 0 else False
@@ -103,6 +104,8 @@ def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
     Nrec = rNrec[1] - rNrec[0]
     assert(Nrec > 0)
     N = len(b)
+    t1 = pytime.time()
+    print '[start] Simulating %d nodes.'%(N)
     maxsteps = int(np.ceil(1. * N * time / tau))
     s = sinit.copy()
     step = 1
@@ -131,6 +134,7 @@ def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
     maxpos = np.where(a_steps > 0.)[0][-1]
     a_s = a_s[:maxpos, :]
     a_steps = a_steps[:maxpos]
+    print '[done] Took %.2f'%(pytime.time() - t1)
     return sinit[rNrec[0]:rNrec[1]], a_steps, a_s
 
 
