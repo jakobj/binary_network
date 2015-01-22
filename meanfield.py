@@ -21,10 +21,10 @@ class BinaryMeanfield(object):
     """
 
     def __init__(self, epsilon, N, gamma, g, w, b):
-        self.NE = int(gamma*N)
-        self.NI = N-self.NE
-        KE = int(epsilon*self.NE)
-        KI = int(epsilon*self.NI)
+        self.NE = int(gamma * N)
+        self.NI = int(N - self.NE)
+        KE = int(epsilon * self.NE)
+        KI = int(epsilon * self.NI)
         self.K = np.array([[KE, KI],
                            [KE, KI]])
         self.J = np.array([[w, -g*w],
