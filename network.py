@@ -134,7 +134,7 @@ def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
     maxpos = np.where(a_steps > 0.)[0][-1]
     a_s = a_s[:maxpos, :]
     a_steps = a_steps[:maxpos]
-    print '[done] Took %.2f'%(pytime.time() - t1)
+    print '[done] Took %.2fs'%(pytime.time() - t1)
     return sinit[rNrec[0]:rNrec[1]], a_steps, a_s
 
 
