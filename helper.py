@@ -164,15 +164,20 @@ def get_beta_from_sigma_input(sigma_input):
     return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
 
 
-def get_joints(a_s, steps_warmup, M=1):
+def get_joints(a_s, steps_warmup, M=1, prior=None):
     steps_tot = len(a_s[steps_warmup:])
     N = len(a_s[0,:])/M
     a_joints = np.empty((M, 2**N))
     possible_states = get_states(N)
     states = {}
     for i in range(M):
-        for s in possible_states:
-            states[tuple(s)] = 0.
+        if prior is None:
+            for s in possible_states:
+                states[tuple(s)] = 0.
+        elif prior == 'uniform':
+            for s in possible_states:
+                states[tuple(s)] = 1.
+            steps_tot += len(possible_states)
         for s in a_s[steps_warmup:, i*N:(i+1)*N]:
             states[tuple(s)] += 1
         states_sorted = np.array([it[1] for it in sorted(states.items())])
