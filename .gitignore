@@ -1,0 +1,14 @@
+*~
+\#*\#
+
+*.py[cx]
+/build
+*.so
+
+*.prof
+*.lprof
+
+.coverage
+htmlcov/
+
+.ropeproject/
