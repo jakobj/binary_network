@@ -29,7 +29,7 @@ class BinaryMeanfield(object):
                            [KE, KI]])
         self.J = np.array([[w, -g*w],
                            [w, -g*w]])
-        self.b = b
+        self.b = np.array(b)
         self.C = np.array([[0., 0.],
                            [0., 0.]])
         self.mu = np.array([0., 0.])
@@ -55,6 +55,9 @@ class BinaryMeanfield(object):
         Mean input given presynaptic activity mu
         Formula (4) in Helias14
         """
+        mu = np.array(mu)
+        if np.shape(mu) != (2,):
+            raise ValueError, 'Mean activity needs to be given for both populations.'
         return np.dot(self.K*self.J, mu)
 
 
@@ -65,9 +68,16 @@ class BinaryMeanfield(object):
         For C=None: formula (6) in Helias14
         For C: formula (13) in Helias14
         """
+        mu = np.array(mu)
+        if np.shape(mu) != (2,):
+            raise ValueError, 'Mean activity needs to be given for both populations.'
         if C is None:
             C = np.array([[0., 0.],
                           [0., 0.]])
+        else:
+            C = np.array(C)
+        if np.shape(C) != (2, 2):
+            raise ValueError, 'Correlation needs to be given for all combinations of both populations.'
         a = bhlp.get_sigma2(mu)
         sigma_shared = np.dot(self.K*self.J*self.J, a)
         sigma_corr = np.diag(np.dot(np.dot(self.K*self.J, C), (self.K*self.J).T))
@@ -121,6 +131,8 @@ class BinaryMeanfield(object):
         network iteratively, using the improved meanfield approach from
         Helias14
         """
+        if np.shape(mu0) != (2,):
+            raise ValueError, 'Initial guess for mean activity needs to be given for both populations.'
         Dmu = 1e10
         Dc = 1e10
         mu = mu0
@@ -141,6 +153,8 @@ class BinaryMeanfield(object):
         """Calculate mean activity in a recurrent
         network using meanfield approach
         """
+        if np.shape(mu0) != (2,):
+            raise ValueError, 'Initial guess for mean activity needs to be given for both populations.'
         mu = mu0
         mu = self.get_mu_meanfield(mu)
         return mu
