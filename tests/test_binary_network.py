@@ -5,7 +5,7 @@ import numpy.testing as nptest
 import helper as hlp
 import network as bnet
 
-np.random.seed(123456)
+np.random.seed(13456)
 
 
 class HelperTestCase(unittest.TestCase):
@@ -543,8 +543,8 @@ class NetworkTestCase(unittest.TestCase):
         timelag_brn, autof_brn = hlp.autocorrf(
             times_bin_brn, st_brn[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
-        self.assertTrue(abs(np.sum(autof_brn - expected_autof))
-                        < 0.5 * np.sum(abs(autof_brn)))
+        self.assertLess(np.sum(autof_brn - expected_autof),
+                        0.5 * np.sum(autof_brn))
 
         # Poisson (independent)
         W = np.zeros((N, N))
@@ -557,9 +557,8 @@ class NetworkTestCase(unittest.TestCase):
         timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
-        self.assertTrue(abs(np.sum(abs(autof - expected_autof)))
-                        < 0.5 * np.sum(abs(autof)))
-
+        self.assertLess(np.sum(autof - expected_autof),
+                        0.5 * np.sum(autof))
 
     def test_cross_corr(self):
         N = 60
