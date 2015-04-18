@@ -68,6 +68,8 @@ class HelperTestCase(unittest.TestCase):
         KEnoise = int(gamma * Knoise)
         KInoise = int(Knoise - KEnoise)
         for l in W:
+            self.assertTrue(np.all(l[:KEnoise]) >= 0)
+            self.assertTrue(np.all(l[KEnoise:]) <= 0)
             self.assertEqual(len(l[l > 0]), KEnoise)
             self.assertAlmostEqual(np.sum(l[l > 0]), KEnoise * w)
             self.assertEqual(len(l[l < 0]), KInoise)
