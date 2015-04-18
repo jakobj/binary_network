@@ -65,6 +65,19 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_hybridnoise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
+    W = np.zeros((Nbm, Nnoise))
+    NE = int(gamma * Nnoise)
+    NI = int(Nnoise - NE)
+    KE = int(epsilon * NE)
+    KI = int(epsilon * NI)
+    for l in range(Nbm):
+        ind = np.random.permutation(np.arange(0, Nnoise))[:KE+KI]
+        W[l, ind[:KE]] = w
+        W[l, ind[KE:]] = -g * w
+    return W
+
+
 def create_indep_noise_connectivity_matrix(Nbm, Knoise, gamma, g, w):
     Nnoise = Nbm * Knoise
     W = np.zeros((Nbm, Nnoise))
