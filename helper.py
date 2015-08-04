@@ -118,8 +118,10 @@ def create_noise_connectivity_matrix_fixed_pairwise(Nbm, Nnoise, gamma, g, w, ep
     # this translate to (Nbm - 1 ) * epsilon <= 1
     assert(KEshared * (Nbm - 1) <= KE), '[error] impossible parameter choices'
     assert(KIshared * (Nbm - 1) <= KI), '[error] impossible parameter choices'
-    NE = Nbm*(KE-KEshared)
-    NI = Nbm*(KI-KIshared)
+    # the two next conditions are fullfilled if the two conditions
+    # above are fullfilled; they are left in for documentation
+    assert(Nbm*(KE-KEshared) <= NE)
+    assert(Nbm*(KI-KIshared) <= NI)
     W = np.zeros((Nbm, NE+NI))
     for k in xrange(2):
         K = [KE, KI][k]
