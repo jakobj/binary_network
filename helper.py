@@ -65,6 +65,80 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_noise_connectivity_matrix_only_pairwise(Nbm, NE, NI, g, w, KE, KI):
+    W = np.zeros((Nbm, NE+NI))
+    if KE > 0:
+        assert(Nbm * KE < 2 * NE)
+    if KI > 0:
+        assert(Nbm * KI < 2 * NI)
+    outdegree = {}
+    sources = np.arange(0, NE+NI)
+    for l in xrange(Nbm):
+        indegree = 0
+        while indegree < KE:
+            indE = np.random.permutation(sources[:KE])[0]
+            if indE in outdegree.keys():
+                if outdegree[indE] < 2 and abs(W[l, indE]) < 1e-12:
+                    W[l, indE] = w
+                    outdegree[indE] += 1
+                    indegree += 1
+            else:
+                W[l, indE] = w
+                outdegree[indE] = 1
+                indegree += 1
+        indegree = 0
+        while indegree < KI:
+            indI = np.random.permutation(sources[KE:])[0]
+            if indI in outdegree.keys():
+                if outdegree[indI] < 2 and abs(W[l, indI]) < 1e-12:
+                    W[l, indI] = -g * w
+                    outdegree[indI] += 1
+                    indegree += 1
+                    if outdegree[indI] == 2:
+                        sources = np.delete(sources, np.where(sources == indI)[0])
+            else:
+                W[l, indI] = -g * w
+                outdegree[indI] = 1
+                indegree += 1
+    return W
+
+
+def create_noise_connectivity_matrix_fixed_pairwise(Nbm, g, w, KE, KI, KEshared, KIshared):
+    # this translate to (Nbm - 1 ) * epsilon <= 1
+    assert(KEshared * (Nbm - 1) <= KE)
+    assert(KIshared * (Nbm - 1) <= KI)
+    NE = Nbm*(KE-KEshared)+1
+    NI = Nbm*(KI-KIshared)+1
+    template = np.zeros((Nbm, KE+KI))
+    l = 0
+    i = 0
+    KIshared_count = 0
+    while l < Nbm:
+        if l == 0:
+            template[l, i] = -g * w
+            i += 1
+            if i == KI:
+                i = l
+                l += 1
+        else:
+            template[l, i] = -g * w
+            i += 1
+            KIshared_count += 1
+            if KIshared_count == KIshared:
+                KIshared_count = 0
+                l += 1
+    W = np.zeros((Nbm, NE+NI))
+    offset_i = 0
+    for l in xrange(Nbm):
+        if l == 0:
+            W[l:Nbm, offset_i:offset_i+KI] = template
+            offset_i += KI
+        else:
+            W[l:Nbm, offset_i:offset_i+KI-l*KIshared] = template[:-l, :-l*KIshared]
+            offset_i += KI-l*KIshared
+    return W
+
+
 def create_hybridnoise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     W = np.zeros((Nbm, Nnoise))
     NE = int(gamma * Nnoise)
