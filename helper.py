@@ -103,10 +103,21 @@ def create_noise_connectivity_matrix_only_pairwise(Nbm, NE, NI, g, w, KE, KI):
     return W
 
 
-def create_noise_connectivity_matrix_fixed_pairwise(Nbm, g, w, KE, KI, KEshared, KIshared):
+def create_noise_connectivity_matrix_fixed_pairwise(Nbm, Nnoise, gamma, g, w, epsilon):
+    NE = int(gamma * Nnoise)
+    NI = int(Nnoise - NE)
+    KE = int(epsilon * NE)
+    KI = int(epsilon * NI)
+    KEshared = 0
+    KIshared = 0
+    if NE > 0:
+        KEshared = int(1. * KE**2 / NE)
+    if NI > 0:
+        KIshared = int(1. * KI**2 / NI)
+    # check whether it is possible to realize desired connectivity;
     # this translate to (Nbm - 1 ) * epsilon <= 1
-    assert(KEshared * (Nbm - 1) <= KE)
-    assert(KIshared * (Nbm - 1) <= KI)
+    assert(KEshared * (Nbm - 1) <= KE), '[error] impossible parameter choices'
+    assert(KIshared * (Nbm - 1) <= KI), '[error] impossible parameter choices'
     NE = Nbm*(KE-KEshared)
     NI = Nbm*(KI-KIshared)
     W = np.zeros((Nbm, NE+NI))
@@ -114,36 +125,37 @@ def create_noise_connectivity_matrix_fixed_pairwise(Nbm, g, w, KE, KI, KEshared,
         K = [KE, KI][k]
         Kshared = [KEshared, KIshared][k]
         wt = [w, -g*w][k]
-        template = np.zeros((Nbm, K))
-        l = 0
-        i = 0
-        Kshared_count = 0
-        while l < Nbm:
-            if l == 0:
-                template[l, i] = wt
-                i += 1
-                if i == K:
-                    i = l
-                    l += 1
-            else:
-                if Kshared_count < Kshared:
+        if K > 0:
+            template = np.zeros((Nbm, K))
+            l = 0
+            i = 0
+            Kshared_count = 0
+            while l < Nbm:
+                if l == 0:
                     template[l, i] = wt
-                    Kshared_count += 1
-                i += 1
-                if Kshared_count == Kshared:
-                    Kshared_count = 0
-                    l += 1
-        offset_i = k*KE*Nbm
-        for l in xrange(Nbm):
-            if l == 0:
-                W[l:Nbm, offset_i:offset_i+K] = template
-                offset_i += K
-            else:
-                if Kshared == 0:
-                    W[l:Nbm, offset_i:offset_i+K-l*Kshared] = template[:-l, :]
+                    i += 1
+                    if i == K:
+                        i = l
+                        l += 1
                 else:
-                    W[l:Nbm, offset_i:offset_i+K-l*Kshared] = template[:-l, :-l*Kshared]
-                offset_i += K-l*Kshared
+                    if Kshared_count < Kshared:
+                        template[l, i] = wt
+                        Kshared_count += 1
+                    i += 1
+                    if Kshared_count == Kshared:
+                        Kshared_count = 0
+                        l += 1
+            offset_i = k*(KE-KEshared)*Nbm
+            for l in xrange(Nbm):
+                if l == 0:
+                    W[l:Nbm, offset_i:offset_i+K] = template
+                    offset_i += K
+                else:
+                    if Kshared == 0:
+                        W[l:Nbm, offset_i:offset_i+K-l*Kshared] = template[:-l, :]
+                    else:
+                        W[l:Nbm, offset_i:offset_i+K-l*Kshared] = template[:-l, :-l*Kshared]
+                    offset_i += K-l*Kshared
     return W
 
 
