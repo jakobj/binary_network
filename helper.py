@@ -181,7 +181,7 @@ def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsi
         if K > 0:
             offset_i = k*NE
             Kshared_offset = 0
-            for l in xrange(M-1):
+            for l in xrange(M):
                 template = generate_template(M-l, K-Kshared_offset, Kshared, wt)
                 W[l:M, offset_i:offset_i+K-Kshared_offset] = template
                 offset_i += K-Kshared_offset
