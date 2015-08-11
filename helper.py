@@ -1,6 +1,7 @@
 import numpy as np
 import itertools as itr
 import scipy.special as scsp
+from scipy import random as scrnd
 
 
 def binomial_outdegree_multapses(M, K, N, m):
@@ -130,12 +131,12 @@ def create_noise_connectivity_matrix_only_pairwise(Nbm, NE, NI, g, w, KE, KI):
     return W
 
 
-def generate_template(M, K, Kshared, w):
+def generate_template(M, K, Kshared, w, Ktot, N, random=False):
     assert(M > 0 and K > 0)
     template = np.zeros((M, K))
     l = 0
     i = 0
-    Kshared_count = 0
+    Kshared_counts = np.zeros(M)
     while l < M:
         if l == 0:
             template[l, i] = w
@@ -143,18 +144,21 @@ def generate_template(M, K, Kshared, w):
             if i == K:
                 i = l
                 l += 1
+                if random:
+                    Kshared = scrnd.binomial(Ktot, 1.*Ktot/N)
         else:
-            if Kshared_count < Kshared:
+            if Kshared_counts[l] < Kshared:
                 template[l, i] = w
-                Kshared_count += 1
+                Kshared_counts[l] += 1
             i += 1
-            if Kshared_count == Kshared:
-                Kshared_count = 0
+            if Kshared_counts[l] == Kshared:
                 l += 1
-    return template
+                if random:
+                    Kshared = scrnd.binomial(Ktot, 1.*Ktot/N)
+    return Kshared_counts, template
 
 
-def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon):
+def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, random_shared=False):
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(epsilon * NE)
@@ -175,17 +179,19 @@ def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsi
     assert(M*(KI-KIshared) <= NI)
     W = np.zeros((M, NE+NI))
     for k in xrange(2):
+        N = [NE, NI][k]
         K = [KE, KI][k]
         Kshared = [KEshared, KIshared][k]
         wt = [w, -g*w][k]
         if K > 0:
             offset_i = k*NE
-            Kshared_offset = 0
+            Kshared_offset = np.zeros(M)
             for l in xrange(M):
-                template = generate_template(M-l, K-Kshared_offset, Kshared, wt)
-                W[l:M, offset_i:offset_i+K-Kshared_offset] = template
-                offset_i += K-Kshared_offset
-                Kshared_offset += Kshared
+                Kshared_counts, template = generate_template(M-l, K-Kshared_offset[l], Kshared, wt, K, N, random_shared)
+                W[l:M, offset_i:offset_i+K-Kshared_offset[l]] = template
+                offset_i += K-Kshared_offset[l]
+                Kshared_offset[l:] += Kshared_counts
+                print 'i, shared', offset_i, Kshared_offset
     return W
 
 
