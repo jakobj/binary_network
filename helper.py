@@ -93,44 +93,6 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
-def create_noise_connectivity_matrix_only_pairwise(Nbm, NE, NI, g, w, KE, KI):
-    W = np.zeros((Nbm, NE+NI))
-    if KE > 0:
-        assert(Nbm * KE < 2 * NE)
-    if KI > 0:
-        assert(Nbm * KI < 2 * NI)
-    outdegree = {}
-    sources = np.arange(0, NE+NI)
-    for l in xrange(Nbm):
-        indegree = 0
-        while indegree < KE:
-            indE = np.random.permutation(sources[:KE])[0]
-            if indE in outdegree.keys():
-                if outdegree[indE] < 2 and abs(W[l, indE]) < 1e-12:
-                    W[l, indE] = w
-                    outdegree[indE] += 1
-                    indegree += 1
-            else:
-                W[l, indE] = w
-                outdegree[indE] = 1
-                indegree += 1
-        indegree = 0
-        while indegree < KI:
-            indI = np.random.permutation(sources[KE:])[0]
-            if indI in outdegree.keys():
-                if outdegree[indI] < 2 and abs(W[l, indI]) < 1e-12:
-                    W[l, indI] = -g * w
-                    outdegree[indI] += 1
-                    indegree += 1
-                    if outdegree[indI] == 2:
-                        sources = np.delete(sources, np.where(sources == indI)[0])
-            else:
-                W[l, indI] = -g * w
-                outdegree[indI] = 1
-                indegree += 1
-    return W
-
-
 def generate_template(M, K, Kshared, w, Ktot, N, random=False):
     assert(M > 0 and K > 0)
     template = np.zeros((M, K))
@@ -173,10 +135,6 @@ def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsi
     # this translate to (M - 1 ) * epsilon <= 1
     assert(KEshared * (M - 1) <= KE), '[error] impossible parameter choices'
     assert(KIshared * (M - 1) <= KI), '[error] impossible parameter choices'
-    # the two next conditions are fullfilled if the two conditions
-    # above are fullfilled; they are left in for documentation
-    assert(M*(KE-KEshared) <= NE)
-    assert(M*(KI-KIshared) <= NI)
     W = np.zeros((M, NE+NI))
     for k in xrange(2):
         N = [NE, NI][k]
@@ -191,7 +149,6 @@ def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsi
                 W[l:M, offset_i:offset_i+K-Kshared_offset[l]] = template
                 offset_i += K-Kshared_offset[l]
                 Kshared_offset[l:] += Kshared_counts
-                print 'i, shared', offset_i, Kshared_offset
     return W
 
 
