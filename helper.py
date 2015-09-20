@@ -393,6 +393,13 @@ def Fsigma(x, beta=1.):
     return 0 if 1. / (1. + np.exp(-beta * x)) < np.random.rand() else 1
 
 
+def Ferfc(x, beta=1.):
+    """activation function from complementary error function for
+    stochastic binary neurons
+    """
+    return 0 if 0.5*scsp.erfc(-1./beta*x) < np.random.rand() else 1
+
+
 def sigmainv(y, beta=1.):
     """returns bias b that leads to mean activity y of a stochastic binary
     neuron by inverting sigmoidal activation function
