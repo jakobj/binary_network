@@ -1,7 +1,9 @@
+# global imports
 import unittest
 import numpy as np
 import numpy.testing as nptest
 
+# local imports
 from .. import helper as bhlp
 from .. import network as bnet
 
@@ -59,8 +61,8 @@ class HelperRegressionTestCase(unittest.TestCase):
 
     def test_initial_state(self):
         N = 4
-        W = bhlp.create_BM_weight_matrix(N)
-        b = bhlp.create_BM_biases(N)
+        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
+        b = bhlp.create_BM_biases(N, np.random.uniform, low=-1., high=1.)
         beta = 0.8
         sinit = np.random.randint(0, 2, N)
         rNrec = [0, 2]

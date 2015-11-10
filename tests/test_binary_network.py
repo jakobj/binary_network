@@ -164,7 +164,7 @@ class NetworkTestCase(unittest.TestCase):
         g = 8.
         gamma = 0.
         epsilon = 0.2
-        W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        W_brn = hlp.create_BRN_weight_matrix(N, w, g, epsilon, gamma)
         b_brn = -1. * \
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
@@ -217,7 +217,7 @@ class NetworkTestCase(unittest.TestCase):
         g = 8.
         gamma = 0.1
         epsilon = 0.3
-        W_brn = hlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        W_brn = hlp.create_BRN_weight_matrix(N, w, g, epsilon, gamma)
         b_brn = -1. * \
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
@@ -270,9 +270,9 @@ class NetworkTestCase(unittest.TestCase):
 
         # Network case (correlated sources)
         W_brn = np.zeros((N + Nnoise, N + Nnoise))
-        W_brn[:N, N:] = hlp.create_noise_connectivity_matrix(
+        W_brn[:N, N:] = hlp.create_noise_weight_matrix(
             N, Nnoise, gamma, g, w, epsilon)
-        W_brn[N:, N:] = hlp.create_connectivity_matrix(
+        W_brn[N:, N:] = hlp.create_BRN_weight_matrix(
             Nnoise, w, g, epsilon, gamma)
         b_brn = np.zeros(N + Nnoise)
         b_brn[:N] = -w / 2.
@@ -298,7 +298,7 @@ class NetworkTestCase(unittest.TestCase):
 
         # Poisson case (independent sources)
         W = np.zeros((N + Nnoise, N + Nnoise))
-        W[:N, N:] = hlp.create_noise_connectivity_matrix(
+        W[:N, N:] = hlp.create_noise_weight_matrix(
             N, Nnoise, gamma, g, w, epsilon)
         b = np.zeros(N + Nnoise)
         b[:N] = -w / 2.

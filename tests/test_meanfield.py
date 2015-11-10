@@ -1,8 +1,10 @@
+# global imports
 import unittest
 import numpy as np
 import numpy.testing as nptest
 import scipy.integrate as scint
 
+# local imports
 from .. import helper as bhlp
 from .. import network as bnet
 from .. import meanfield as bmf
@@ -113,9 +115,9 @@ class MeanfieldTestCase(unittest.TestCase):
         Nrec = 60
 
         W = np.zeros((N + Nnoise, N + Nnoise))
-        W[:N, N:] = bhlp.create_noise_connectivity_matrix(
+        W[:N, N:] = bhlp.create_noise_weight_matrix(
             N, Nnoise, gamma, g, w, epsilon)
-        W[N:, N:] = bhlp.create_connectivity_matrix(
+        W[N:, N:] = bhlp.create_BRN_weight_matrix(
             Nnoise, w, g, epsilon, gamma)
         b = np.zeros(N + Nnoise)
         b[:N] = -w / 2.
@@ -178,8 +180,8 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
         sigmaJ = 0.1
         self.mu_target = 0.48
         self.beta = .4
-        self.J = bhlp.create_BM_weight_matrix_normal(self.N, muJ, sigmaJ)
-        self.b = bhlp.create_BM_biases_normal(self.N, muJ, self.mu_target)
+        self.J = bhlp.create_BM_weight_matrix(self.N, np.random.normal, loc=muJ, scale=sigmaJ)
+        self.b = bhlp.create_BM_biases_threshold_condition(self.N, muJ, self.mu_target)
         self.mf_net = ugbmf.BinaryMeanfield(self.J, self.b, self.beta)
         # example mean activity and correlation
         self.mu = np.random.uniform(0.2, 0.6, self.N)
@@ -228,7 +230,7 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
             expected_S[i], error = scint.quad(f, -2e2, 2e2)
             self.assertLess(error, 1e-7)
         S = self.mf_net.get_suszeptibility(self.mu, self.C)
-        nptest.assert_array_almost_equal(expected_S, S, decimal=5)
+        nptest.assert_array_almost_equal(expected_S, S, decimal=4)
 
     def test_get_w_meanfield(self):
         S = self.mf_net.get_suszeptibility(self.mu, self.C)
