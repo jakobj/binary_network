@@ -24,7 +24,7 @@ class HelperTestCase(unittest.TestCase):
         KI = int(epsilon * NI)
         K = KE + KI
 
-        W = bhlp.create_noise_connectivity_matrix(M, N, gamma, g, w, epsilon)
+        W = bhlp.create_noise_weight_matrix(M, N, gamma, g, w, epsilon)
         outdegree = []
         for i in xrange(N):
             outdegree.append(len(np.where(abs(W[:, i]) > 0.)[0]))
@@ -48,7 +48,7 @@ class HelperTestCase(unittest.TestCase):
         KI = int(epsilon * NI)
         K = KE + KI
 
-        W = bhlp.create_noise_connectivity_matrix(M, N, gamma, g, w, epsilon)
+        W = bhlp.create_noise_weight_matrix(M, N, gamma, g, w, epsilon)
         shared_inputs = []
         for i in xrange(M):
             for j in xrange(M):
@@ -63,11 +63,33 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(theo_hist_shared, hist_shared, decimal=2)
 
     def test_BM_weight_matrix(self):
+        N = 500
+        expected_diag = np.zeros(N)
+
+        # test with uniform distribution
+        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
+        self.assertGreaterEqual(1., np.max(W))
+        self.assertLessEqual(-1., np.min(W))
+        self.assertEqual((N, N), np.shape(W))
+        nptest.assert_array_equal(expected_diag, W.diagonal())
+        self.assertEqual(0., np.sum(W - W.T))
+
+        # test with normal distribution
+        W = bhlp.create_BM_weight_matrix(N, np.random.normal, loc=-1., scale=1.5)
+        self.assertAlmostEqual(-1., np.mean(W), delta=0.05)
+        self.assertAlmostEqual(1.5, np.std(W), delta=0.01)
+        self.assertEqual((N, N), np.shape(W))
+        nptest.assert_array_equal(expected_diag, W.diagonal())
+        self.assertEqual(0., np.sum(W - W.T))
+
+    def test_multi_BM_weight_matrix(self):
         M = 3
         N = 3
         expected_diag = np.zeros(M * N)
         expected_offdiag = np.zeros((N, N))
-        W = bhlp.create_BM_weight_matrix(N, M)
+
+        # test with uniform distribution
+        W = bhlp.create_multi_BM_weight_matrix(N, M, np.random.uniform, low=-1., high=1.)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
         self.assertEqual((M * N, M * N), np.shape(W))
@@ -76,59 +98,49 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_equal(expected_offdiag, W[N:2 * N, :N])
         nptest.assert_array_equal(expected_offdiag, W[:N, N:2 * N])
 
-    def test_BM_biases(self):
-        M = 3
-        N = 3
-        b = bhlp.create_BM_biases(N, M)
-        self.assertEqual(M * N, len(b))
-        expected_max = np.ones(M * N)
-        expected_min = -1. * np.ones(M * N)
-        nptest.assert_array_less(expected_min, b)
-        nptest.assert_array_less(b, expected_max)
-
-    def test_random_weight_matrix(self):
+    def test_BRN_weight_matrix(self):
         N = 100
         w = 0.2
         g = 6
         epsilon = 0.1
         gamma = 0.8
-        W = bhlp.create_connectivity_matrix(N, w, g, epsilon, gamma)
+        W = bhlp.create_BRN_weight_matrix(N, w, g, epsilon, gamma)
         expected_diag = np.zeros(N)
         nptest.assert_array_equal(expected_diag, W.diagonal())
         NE = int(gamma * N)
         NI = N - NE
-        for l in W:
-            self.assertEqual(len(l[l > 0]), epsilon * NE)
-            self.assertAlmostEqual(np.sum(l[l > 0]), epsilon * NE * w)
-            self.assertEqual(len(l[l < 0]), epsilon * NI)
-            self.assertAlmostEqual(
-                np.sum(l[l < 0]), -1. * epsilon * NI * w * g)
-            self.assertAlmostEqual(
-                1. * len(l[l > 0]) / len(l[l < 0]), gamma / (1. - gamma))
+        self.assertEqual(np.shape(W), (N, N))
+        self.assertTrue(np.all(W[:, :NE] >= 0.))
+        self.assertTrue(np.all(W[:, NE:] <= 0.))
+        self.assertEqual(len(np.where(W[:, :NE] > 0.)[0]), epsilon * NE * N)
+        self.assertEqual(len(np.where(W[:, NE:] < 0.)[0]), epsilon * NI * N)
+        self.assertEqual(np.unique(W[W > 0]), [w])
+        self.assertEqual(np.unique(W[W < 0]), [-g * w])
+        self.assertAlmostEqual(1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma))
 
     def test_noise_weight_matrix(self):
         Knoise = 100
-        N = 3
+        M = 3
         w = 0.2
         g = 6
-        epsilon = 0.9
-        Nnoise = int(Knoise/epsilon)
+        epsilon = 0.8
+        Nnoise = int(Knoise / epsilon)
         gamma = 0.3
-        W = bhlp.create_noise_connectivity_matrix(
-            N, Nnoise, gamma, g, w, epsilon)
-        Knoise = int(epsilon * Nnoise)
-        KEnoise = int(gamma * Knoise)
-        KInoise = int(Knoise - KEnoise)
-        for l in W:
-            self.assertTrue(np.all(l[:KEnoise]) >= 0)
-            self.assertTrue(np.all(l[KEnoise:]) <= 0)
-            self.assertEqual(len(l[l > 0]), KEnoise)
-            self.assertAlmostEqual(np.sum(l[l > 0]), KEnoise * w)
-            self.assertEqual(len(l[l < 0]), KInoise)
-            self.assertAlmostEqual(
-                np.sum(l[l < 0]), -1. * KInoise * w * g)
-            self.assertAlmostEqual(
-                1. * len(l[l > 0]) / len(l[l < 0]), 1. * KEnoise / KInoise)
+        W = bhlp.create_noise_weight_matrix(M, Nnoise, gamma, g, w,
+                                            epsilon)
+        NEnoise = int(gamma * Nnoise)
+        NInoise = int(Nnoise - NEnoise)
+        KEnoise = int(epsilon * NEnoise)
+        KInoise = int(epsilon * NInoise)
+
+        self.assertEqual(np.shape(W), (M, Nnoise))
+        self.assertTrue(np.all(W[:, :NEnoise] >= 0.))
+        self.assertTrue(np.all(W[:, NEnoise:] <= 0.))
+        self.assertEqual(len(np.where(W[:, :NEnoise] > 0.)[0]), KEnoise * M)
+        self.assertEqual(len(np.where(W[:, NEnoise:] < 0.)[0]), KInoise * M)
+        self.assertEqual(np.unique(W[W > 0]), [w])
+        self.assertEqual(np.unique(W[W < 0]), [-g * w])
+        self.assertAlmostEqual(1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma), delta=0.1)
 
     def test_hybridnoise_weight_matrix(self):
         Knoise = 100
@@ -136,9 +148,9 @@ class HelperTestCase(unittest.TestCase):
         w = 0.2
         g = 6
         epsilon = 0.9
-        Nnoise = int(Knoise/epsilon)
+        Nnoise = int(Knoise / epsilon)
         gamma = 0.3
-        W = bhlp.create_hybridnoise_connectivity_matrix(
+        W = bhlp.create_hybridnoise_weight_matrix(
             N, Nnoise, gamma, g, w, epsilon)
         Knoise = int(epsilon * Nnoise)
         KEnoise = int(gamma * Knoise)
@@ -158,7 +170,7 @@ class HelperTestCase(unittest.TestCase):
         w = 0.2
         g = 6
         gamma = 0.3
-        W = bhlp.create_indep_noise_connectivity_matrix(
+        W = bhlp.create_indep_noise_weight_matrix(
             N, Knoise, gamma, g, w)
         KEnoise = int(gamma * Knoise)
         KInoise = int(Knoise - KEnoise)
@@ -175,7 +187,7 @@ class HelperTestCase(unittest.TestCase):
         Nnoise = 100
         N = 200
         epsilon = 0.2
-        W = bhlp.create_noise_recurrent_connectivity_matrix(
+        W = bhlp.create_noise_recurrent_weight_matrix(
             N, Nnoise, epsilon)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
@@ -195,8 +207,8 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_theo_joints(self):
         N = 3
-        W = bhlp.create_BM_weight_matrix(N)
-        b = bhlp.create_BM_biases(N)
+        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
+        b = bhlp.create_BM_biases(N, np.random.uniform, low=-1., high=1.)
         beta = 0.5
         expected_joints = []
         states = bhlp.get_states(N)
@@ -208,8 +220,8 @@ class HelperTestCase(unittest.TestCase):
         joints = bhlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints)
         M = 2
-        W = bhlp.create_BM_weight_matrix(N, M)
-        b = bhlp.create_BM_biases(N, M)
+        W = bhlp.create_multi_BM_weight_matrix(N, M, np.random.uniform, low=-1., high=1.)
+        b = bhlp.create_multi_BM_biases(N, M, np.random.uniform, low=-1., high=1.)
         beta = 0.5
         joints = bhlp.get_theo_joints(W, b, beta, M)
         for i in range(M):
@@ -359,15 +371,20 @@ class HelperTestCase(unittest.TestCase):
         g = 6.
         w = 0.2
         smu = 0.2
-        steps = int(1e5)
+        steps = int(1e6)
         KE = int(gamma * K)
         KI = K - KE
         sigmas = bhlp.get_sigma(smu)
+
+        # generate E and I input, and calculate statistics of combined
+        # input
         xE = w * np.random.normal(smu, sigmas, (steps, KE))
         xI = -g * w * np.random.normal(smu, sigmas, (steps, KI))
         x = np.sum([np.sum(xE, axis=1), np.sum(xI, axis=1)], axis=0)
         expected_mu = np.mean(x)
         expected_sigma = np.std(x)
+
+        # compare to theoretical value
         mu = bhlp.get_mu_input(epsilon, N, gamma, g, w, smu)
         self.assertAlmostEqual(expected_mu, mu, delta=0.02 * abs(expected_mu))
         sigma = bhlp.get_sigma_input(epsilon, N, gamma, g, w, smu)
@@ -410,12 +427,11 @@ class HelperTestCase(unittest.TestCase):
         N = 10
         beta = .5
         beta_eff = 0.5
-        J = bhlp.create_BM_weight_matrix(N)
-        b = bhlp.create_BM_biases(N)
+        J = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1, high=1.)
+        b = bhlp.create_BM_biases(N, np.random.uniform, low=-1, high=1.)
         b_eff = b - 20.
         expected_J_eff = beta/beta_eff * J
         expected_b_eff = beta/beta_eff * b + b_eff
         J_eff, b_eff = bhlp.get_adjusted_weights_and_bias(J, b, b_eff, beta_eff, beta)
         nptest.assert_array_almost_equal(expected_J_eff, J_eff)
         nptest.assert_array_almost_equal(expected_b_eff, b_eff)
-

@@ -32,8 +32,14 @@ def shared_input_distribution(K, N, s):
     return scipy.stats.binom.pmf(s, K, 1. * K / N, 0)
 
 
-def create_BM_weight_matrix_normal(N, muJ, sigmaJ):
-    W = np.random.normal(muJ, sigmaJ, (N, N))
+def create_BM_weight_matrix(N, distribution, **kwargs):
+    """creates a random weight matrix for a Boltzmann machine (diagonal=0,
+    and symmetric weights), with weights drawn from
+    distribution. parameters for the distribution need to be passed as
+    kwargs.
+
+    """
+    W = distribution(size=(N, N), **kwargs)
     for i in range(N):
         for j in range(i):
             W[j, i] = W[i, j]
@@ -41,28 +47,43 @@ def create_BM_weight_matrix_normal(N, muJ, sigmaJ):
     return W
 
 
-def create_BM_biases_normal(N, muJ, mu_target):
-    return np.ones(N) * -1. * muJ * N * mu_target
+def create_BM_biases(N, distribution, **kwargs):
+    """create a random bias vector for a Boltzmann machine, with biases
+    drawn from distribution. parameters for the distribution need to
+    be passed as kwargs.
+
+    """
+    return distribution(size=N, **kwargs)
 
 
-def create_BM_weight_matrix(N, M=1):
+def create_multi_BM_weight_matrix(N, M, distribution, **kwargs):
     Ntot = M * N
     W = np.zeros((Ntot, Ntot))
     for i in range(M):
-        W[i * N:(i + 1) * N, i * N:(i + 1) * N] = 2. * \
-            (np.random.rand(N, N) - 0.5)
-    for i in range(Ntot):
-        for j in range(i):
-            W[j, i] = W[i, j]
-    W -= np.diag(W.diagonal())
+        W[i * N:(i + 1) * N, i * N:(i + 1) * N] = create_BM_weight_matrix(N, distribution, **kwargs)
     return W
 
 
-def create_BM_biases(N, M=1):
-    return 2. * (np.random.rand(M * N) - .5)
+def create_multi_BM_biases(N, M, distribution, **kwargs):
+    return create_BM_biases(N * M, distribution, **kwargs)
 
 
-def create_connectivity_matrix(N, w, g, epsilon, gamma):
+def create_BM_biases_threshold_condition(N, muJ, mu_target):
+    """create biases for a Boltzmann machine, by requiring that the
+    average input from other neurons in the BM sums with the bias to
+    zero. this way we can achieve an average activity in the BM of
+    mu_target. for details see, e.g., Helias et al. (2014), PloS CB,
+    eq. (5)
+
+    """
+    return np.ones(N) * -1. * muJ * N * mu_target
+
+
+def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
+    """create a random realization of a weight matrix for an E/I
+    network of N neurons with fixed weights.
+
+    """
     W = np.zeros((N, N))
     NE = int(gamma * N)
     NI = int(N - NE)
@@ -82,28 +103,32 @@ def create_connectivity_matrix(N, w, g, epsilon, gamma):
     return W
 
 
-def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
+def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
+    """create a random realization of a weight matrix for Nnoise source
+    projecting to Nbm targets with E/I connections of fixed weight.
+
+    """
     W = np.zeros((Nbm, Nnoise))
-    NE = int(gamma * Nnoise)
-    NI = int(Nnoise - NE)
-    KE = int(epsilon * NE)
-    KI = int(epsilon * NI)
-    for l in range(Nbm):
-        indE = np.random.permutation(np.arange(0, NE))[:KE]
-        W[l, indE] = w
-        indI = np.random.permutation(np.arange(NE, Nnoise))[:KI]
-        W[l, indI] = -g * w
+    NEnoise = int(gamma * Nnoise)
+    NInoise = int(Nnoise - NEnoise)
+    KEnoise = int(epsilon * NEnoise)
+    KInoise = int(epsilon * NInoise)
+    for l in W:
+        indE = np.random.permutation(np.arange(0, NEnoise))[:KEnoise]
+        l[indE] = w
+        indI = np.random.permutation(np.arange(NEnoise, Nnoise))[:KInoise]
+        l[indI] = -g * w
     return W
 
 
-def create_noise_connectivity_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
+def create_noise_weight_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
     W = np.zeros((Nbm, Nnoise))
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(epsilon * NE)
     KI = int(epsilon * NI)
     for l in range(Nbm):
-        ind = np.random.permutation(np.arange(0, Nnoise))[:KE+KI]
+        ind = np.random.permutation(np.arange(0, Nnoise))[:KE + KI]
         W[l, ind[:KE]] = w
         W[l, ind[KE:]] = -g * w
     return W
@@ -136,7 +161,7 @@ def generate_template(M, K, Kshared, w, Ktot, N, random=False):
     return Kshared_counts, template
 
 
-def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, random_shared=False):
+def create_noise_weight_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, random_shared=False):
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(epsilon * NE)
@@ -169,7 +194,7 @@ def create_noise_connectivity_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsi
     return W
 
 
-def create_hybridnoise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
+def create_hybridnoise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     W = np.zeros((Nbm, Nnoise))
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
@@ -182,7 +207,7 @@ def create_hybridnoise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
-def create_indep_noise_connectivity_matrix(Nbm, Knoise, gamma, g, w):
+def create_indep_noise_weight_matrix(Nbm, Knoise, gamma, g, w):
     Nnoise = Nbm * Knoise
     W = np.zeros((Nbm, Nnoise))
     KE = int(gamma * Knoise)
@@ -194,7 +219,7 @@ def create_indep_noise_connectivity_matrix(Nbm, Knoise, gamma, g, w):
     return W
 
 
-def create_noise_recurrent_connectivity_matrix(Nbm, Nnoise, epsilon):
+def create_noise_recurrent_weight_matrix(Nbm, Nnoise, epsilon):
     W = np.zeros((Nnoise, Nbm))
     K = epsilon * Nbm
     for l in range(Nnoise):
