@@ -194,6 +194,18 @@ def get_states(N):
     return np.array([np.array(x) for x in itr.product([0, 1], repeat=N)])
 
 
+def get_conditionals_from_joints(N, joints, rvs, vals):
+    states = get_states(N)
+    states_cond = []
+    cond = []
+    for i, s in enumerate(states):
+        if np.all(s[rvs] == vals):
+            states_cond.append(s)
+            cond.append(joints[i])
+    cond = np.array(cond) / np.sum(cond)
+    return states_cond, cond
+
+
 def get_theo_marginals(W, b, beta):
     N = len(b)
     joints = get_theo_joints(W, b, beta)
@@ -265,8 +277,8 @@ def get_beta_from_sigma_input(sigma_input):
 
 
 def get_joints(a_s, steps_warmup, M=1, prior=None):
-    steps_tot = len(a_s[steps_warmup:])
-    N = len(a_s[0,:])/M
+    steps_tot = len(a_s[steps_warmup+1:])
+    N = len(a_s[0, :]) / M
     a_joints = np.empty((M, 2**N))
     possible_states = get_states(N)
     states = {}
@@ -281,9 +293,10 @@ def get_joints(a_s, steps_warmup, M=1, prior=None):
         for s in a_s[steps_warmup:, i*N:(i+1)*N]:
             states[tuple(s)] += 1
         states_sorted = np.array([it[1] for it in sorted(states.items())])
-        a_joints[i,:] = 1.* states_sorted / steps_tot
+        a_joints[i, :] = 1.* states_sorted / steps_tot
+        assert((np.sum(a_joints[i, :]) - 1.) < 1e-12)
     if M == 1:
-        return a_joints[0,:]
+        return a_joints[0]
     else:
         return a_joints
 
@@ -314,7 +327,8 @@ def get_joints_sparse(sinit, a_s, steps_warmup, M=1, prior=None):
             if step >= steps_warmup:
                 states[tuple(cstate[i*N:(i+1)*N])] += 1
         states_sorted = np.array([it[1] for it in sorted(states.items())])
-        a_joints[i,:] = 1.* states_sorted / steps_tot
+        a_joints[i, :] = 1.* states_sorted / steps_tot
+        assert((np.sum(a_joints[i, :]) - 1.) < 1e-12)
     if M == 1:
         return a_joints[0]
     else:
@@ -479,3 +493,38 @@ def crosscorrf(times_bin, st, tmax):
     times_autof, mu_autof = autocorrf(times_bin, st, tmax)
     mu_crossf = 1. / (N * (N - 1)) * (cauto - 1. * N * mu_autof)
     return times_autof, mu_autof, mu_crossf
+
+
+def get_isi(N, a_times, a_s):
+    isi = []
+    t0 = []
+    for i in xrange(N):
+        isi.append([])
+        t0.append(0)
+    s0 = a_s[0]
+    for i, s in enumerate(a_s):
+        if np.any(s != s0):
+            pos = np.where(s != s0)[0][0]
+            isi[pos].append(a_times[i] - t0[pos])
+            s0 = s
+            t0[pos] = a_times[i]
+    return isi
+
+
+def get_transition_count(N, a_s, total=False):
+    if total:
+        counts = 0
+    else:
+        counts = np.zeros(N)
+    s0 = a_s[0]
+    for i, s in enumerate(a_s):
+        if np.any(s != s0):
+            if total:
+                counts += 1
+            else:
+                pos = np.where(s != s0)[0][0]
+                counts[pos] += 1
+            s0 = s
+    if total:
+        counts *= 1. / N
+    return counts

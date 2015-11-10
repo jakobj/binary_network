@@ -8,6 +8,7 @@ import helper as hlp
 
 np.random.seed(1234)
 
+
 def crosscorrf(times, a_s, tmax, tbin):
     times_bin, st = hlp.bin_binary_data(times, a_s, tbin)
     freq, cross = ctana.crossspec(st, tbin, units=True)
