@@ -53,21 +53,26 @@ class HelperTestCase(unittest.TestCase):
         for i in xrange(M):
             for j in xrange(M):
                 if i != j:
-                    shared_inputs.append(len(np.where(abs(W[i, :] * W[j, :]) > 1e-12)[0]))
+                    shared_inputs.append(
+                        len(np.where(abs(W[i, :] * W[j, :]) > 1e-12)[0]))
 
         bins_shared = np.arange(0, K)
-        hist_shared, bins_shared = np.histogram(shared_inputs, bins_shared, density=True)
+        hist_shared, bins_shared = np.histogram(
+            shared_inputs, bins_shared, density=True)
 
-        theo_hist_shared = bhlp.shared_input_distribution(K, N, bins_shared[:-1])
+        theo_hist_shared = bhlp.shared_input_distribution(
+            K, N, bins_shared[:-1])
 
-        nptest.assert_array_almost_equal(theo_hist_shared, hist_shared, decimal=2)
+        nptest.assert_array_almost_equal(
+            theo_hist_shared, hist_shared, decimal=2)
 
     def test_BM_weight_matrix(self):
         N = 500
         expected_diag = np.zeros(N)
 
         # test with uniform distribution
-        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
+        W = bhlp.create_BM_weight_matrix(
+            N, np.random.uniform, low=-1., high=1.)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
         self.assertEqual((N, N), np.shape(W))
@@ -75,7 +80,8 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(0., np.sum(W - W.T))
 
         # test with normal distribution
-        W = bhlp.create_BM_weight_matrix(N, np.random.normal, loc=-1., scale=1.5)
+        W = bhlp.create_BM_weight_matrix(
+            N, np.random.normal, loc=-1., scale=1.5)
         self.assertAlmostEqual(-1., np.mean(W), delta=0.05)
         self.assertAlmostEqual(1.5, np.std(W), delta=0.01)
         self.assertEqual((N, N), np.shape(W))
@@ -89,7 +95,8 @@ class HelperTestCase(unittest.TestCase):
         expected_offdiag = np.zeros((N, N))
 
         # test with uniform distribution
-        W = bhlp.create_multi_BM_weight_matrix(N, M, np.random.uniform, low=-1., high=1.)
+        W = bhlp.create_multi_BM_weight_matrix(
+            N, M, np.random.uniform, low=-1., high=1.)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
         self.assertEqual((M * N, M * N), np.shape(W))
@@ -116,7 +123,8 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(len(np.where(W[:, NE:] < 0.)[0]), epsilon * NI * N)
         self.assertEqual(np.unique(W[W > 0]), [w])
         self.assertEqual(np.unique(W[W < 0]), [-g * w])
-        self.assertAlmostEqual(1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma))
+        self.assertAlmostEqual(
+            1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma))
 
     def test_noise_weight_matrix(self):
         Knoise = 100
@@ -140,7 +148,8 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(len(np.where(W[:, NEnoise:] < 0.)[0]), KInoise * M)
         self.assertEqual(np.unique(W[W > 0]), [w])
         self.assertEqual(np.unique(W[W < 0]), [-g * w])
-        self.assertAlmostEqual(1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma), delta=0.1)
+        self.assertAlmostEqual(
+            1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma), delta=0.1)
 
     def test_hybridnoise_weight_matrix(self):
         Knoise = 100
@@ -191,9 +200,9 @@ class HelperTestCase(unittest.TestCase):
             N, Nnoise, epsilon)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
-        self.assertLess(np.sum(W), 0.01*N*Nnoise*epsilon)
+        self.assertLess(np.sum(W), 0.01 * N * Nnoise * epsilon)
         for l in W:
-            self.assertEqual(len(l[l > 0])+len(l[l < 0]), epsilon * N)
+            self.assertEqual(len(l[l > 0]) + len(l[l < 0]), epsilon * N)
 
     def test_get_energy(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -207,7 +216,8 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_theo_joints(self):
         N = 3
-        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
+        W = bhlp.create_BM_weight_matrix(
+            N, np.random.uniform, low=-1., high=1.)
         b = bhlp.create_BM_biases(N, np.random.uniform, low=-1., high=1.)
         beta = 0.5
         expected_joints = []
@@ -220,8 +230,10 @@ class HelperTestCase(unittest.TestCase):
         joints = bhlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints)
         M = 2
-        W = bhlp.create_multi_BM_weight_matrix(N, M, np.random.uniform, low=-1., high=1.)
-        b = bhlp.create_multi_BM_biases(N, M, np.random.uniform, low=-1., high=1.)
+        W = bhlp.create_multi_BM_weight_matrix(
+            N, M, np.random.uniform, low=-1., high=1.)
+        b = bhlp.create_multi_BM_biases(
+            N, M, np.random.uniform, low=-1., high=1.)
         beta = 0.5
         joints = bhlp.get_theo_joints(W, b, beta, M)
         for i in range(M):
@@ -273,7 +285,7 @@ class HelperTestCase(unittest.TestCase):
         steps = int(1e5)
         steps_warmup = 1e4
         a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
-        a_s[:steps_warmup,:] = 0
+        a_s[:steps_warmup, :] = 0
         expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
         joints = bhlp.get_joints(a_s, steps_warmup)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
@@ -290,14 +302,16 @@ class HelperTestCase(unittest.TestCase):
         N = 5
         steps = 4e4
         steps_warmup = 1e3
-        a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
+        a_s = np.vstack([np.random.randint(0, N, steps),
+                         np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
-        expected_joints = np.ones(2**N) * 1. / (2 ** N)
+        expected_joints = np.ones(2 ** N) * 1. / (2 ** N)
         joints = bhlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 3
-        a_s = np.vstack([np.random.randint(0, M * N, steps), np.random.randint(0, 2, steps)]).T
+        a_s = np.vstack([np.random.randint(0, M * N, steps),
+                         np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
         joints = bhlp.get_joints_sparse(np.zeros(M * N), a_s, steps_warmup, M)
         expected_sum = np.ones(M)
@@ -305,17 +319,19 @@ class HelperTestCase(unittest.TestCase):
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
-        a_s = np.vstack([np.random.randint(0, N, steps), np.random.randint(0, 2, steps)]).T
+        a_s = np.vstack([np.random.randint(0, N, steps),
+                         np.random.randint(0, 2, steps)]).T
         a_s[:steps_warmup, 1] = 0
         a_s[np.where(a_s[:, 0] == 4), 1] = 0
-        expected_joints = 2. *np.ones(2**N) * 1. / (2 ** N)
+        expected_joints = 2. * np.ones(2 ** N) * 1. / (2 ** N)
         expected_joints[1::2] = 0.
         joints = bhlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
-        nptest.assert_array_equal(np.zeros(2**N/2), joints[1::2])
+        nptest.assert_array_equal(np.zeros(2 ** N / 2), joints[1::2])
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
-        joints = bhlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup, prior='uniform')
-        nptest.assert_array_less(np.zeros(2**N), joints)
+        joints = bhlp.get_joints_sparse(
+            np.zeros(N), a_s, steps_warmup, prior='uniform')
+        nptest.assert_array_less(np.zeros(2 ** N), joints)
 
     def test_get_marginals(self):
         N = int(1e5)
@@ -411,11 +427,11 @@ class HelperTestCase(unittest.TestCase):
         N = 25
         x = np.random.rand(N)
         y = np.random.rand(N)
-        expected_dist = np.sqrt(np.dot(x-y, x-y))
+        expected_dist = np.sqrt(np.dot(x - y, x - y))
         dist = bhlp.get_euclidean_distance(x, y)
         nptest.assert_array_almost_equal(expected_dist, dist)
         y = -x
-        expected_dist = 2. * np.sqrt(np.sum(x**2))
+        expected_dist = 2. * np.sqrt(np.sum(x ** 2))
         dist = bhlp.get_euclidean_distance(x, y)
         nptest.assert_array_almost_equal(expected_dist, dist)
         y = x
@@ -430,8 +446,9 @@ class HelperTestCase(unittest.TestCase):
         J = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1, high=1.)
         b = bhlp.create_BM_biases(N, np.random.uniform, low=-1, high=1.)
         b_eff = b - 20.
-        expected_J_eff = beta/beta_eff * J
-        expected_b_eff = beta/beta_eff * b + b_eff
-        J_eff, b_eff = bhlp.get_adjusted_weights_and_bias(J, b, b_eff, beta_eff, beta)
+        expected_J_eff = beta / beta_eff * J
+        expected_b_eff = beta / beta_eff * b + b_eff
+        J_eff, b_eff = bhlp.get_adjusted_weights_and_bias(
+            J, b, b_eff, beta_eff, beta)
         nptest.assert_array_almost_equal(expected_J_eff, J_eff)
         nptest.assert_array_almost_equal(expected_b_eff, b_eff)

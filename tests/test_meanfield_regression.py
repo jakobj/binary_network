@@ -36,6 +36,7 @@ class MeanfieldRegressionTestCase(unittest.TestCase):
     def test_get_sigma_input(self):
         self.assertRaises(ValueError, self.mfi.get_sigma_input, 0.2)
         self.mfi.get_sigma_input([0.2, 0.2], [[0.2, 0.2], [0.2, 0.2]])
-        self.assertRaises(ValueError, self.mfi.get_sigma_input, 0.2, [[0.2, 0.2], [0.2, 0.2]])
-        self.assertRaises(ValueError, self.mfi.get_sigma_input, [0.2, 0.2], [0.2, 0.2])
-
+        self.assertRaises(ValueError, self.mfi.get_sigma_input,
+                          0.2, [[0.2, 0.2], [0.2, 0.2]])
+        self.assertRaises(ValueError, self.mfi.get_sigma_input, [
+                          0.2, 0.2], [0.2, 0.2])
