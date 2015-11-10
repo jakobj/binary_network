@@ -293,7 +293,7 @@ def get_beta_from_sigma_input(sigma_input):
 
 
 def get_joints(a_s, steps_warmup, M=1, prior=None):
-    steps_tot = len(a_s[steps_warmup + 1:])
+    steps_tot = len(a_s[steps_warmup:])
     N = len(a_s[0, :]) / M
     a_joints = np.empty((M, 2 ** N))
     possible_states = get_states(N)
