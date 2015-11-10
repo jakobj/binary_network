@@ -1,33 +1,35 @@
+# global imports
 import numpy as np
-import itertools as itr
-import scipy.special as scsp
-from scipy import random as scrnd
+import itertools
+import scipy
+import scipy.special
+import scipy.stats
 
 
-def binomial_outdegree_multapses(M, K, N, m):
-    """probability to find a source with m outputs for choosing for M
-    neurons K sources from a pool of N neurons, with allowing a source
-    to be chosen more than once for a single target
+# def binomial_outdegree_multapses(M, K, N, m):
+#     """probability to find a source with m outputs for choosing for M
+#     neurons K sources from a pool of N neurons, with allowing a source
+#     to be chosen more than once for a single target
 
-    """
-    return scsp.binom(M * K, m) * (1. / N) ** m * (1. - 1. / N) ** (M * K - m)
+#     """
+#     return scipy.stats.binom.pmf(m, M * K, 1. / N, 0)
 
 
-def binomial_outdegree(M, K, N, m):
+def outdegree_distribution(M, K, N, m):
     """probability to find a source with m outputs for choosing for M
     neurons K sources from a pool of N neurons, without choosing a
     source twice for a single target
 
     """
-    return scsp.binom(M, m) * (1. * K / N) ** m * (1. - 1. * K / N) ** (M - m)
+    return scipy.stats.binom.pmf(m, M, 1. * K / N, 0)
 
 
-def binomial_shared(K, N, s):
+def shared_input_distribution(K, N, s):
     """distribution of choosing s shared inputs for choosing K sources of
     a pool of N sources
 
     """
-    return scsp.binom(K, s) * (1. * K / N) ** s * (1. - 1. * K / N) ** (K - s)
+    return scipy.stats.binom.pmf(s, K, 1. * K / N, 0)
 
 
 def create_BM_weight_matrix_normal(N, muJ, sigmaJ):
@@ -121,7 +123,7 @@ def generate_template(M, K, Kshared, w, Ktot, N, random=False):
                 i = l
                 l += 1
                 if random:
-                    Kshared = scrnd.binomial(Ktot, 1. * Ktot / N)
+                    Kshared = scipy.random.binomial(Ktot, 1. * Ktot / N)
         else:
             if Kshared_counts[l] < Kshared:
                 template[l, i] = w
@@ -130,7 +132,7 @@ def generate_template(M, K, Kshared, w, Ktot, N, random=False):
             if Kshared_counts[l] == Kshared:
                 l += 1
                 if random:
-                    Kshared = scrnd.binomial(Ktot, 1. * Ktot / N)
+                    Kshared = scipy.random.binomial(Ktot, 1. * Ktot / N)
     return Kshared_counts, template
 
 
@@ -206,7 +208,7 @@ def get_energy(W, b, s, beta=1.):
 
 
 def get_states(N):
-    return np.array([np.array(x) for x in itr.product([0, 1], repeat=N)])
+    return np.array([np.array(x) for x in itertools.product([0, 1], repeat=N)])
 
 
 def get_conditionals_from_joints(N, joints, rvs, vals):
@@ -428,7 +430,7 @@ def Ferfc(x, beta=1.):
     """activation function from complementary error function for
     stochastic binary neurons
     """
-    return 0 if 0.5 * scsp.erfc(-1. / beta * x) < np.random.rand() else 1
+    return 0 if 0.5 * scipy.special.erfc(-1. / beta * x) < np.random.rand() else 1
 
 
 def sigmainv(y, beta=1.):

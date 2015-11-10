@@ -2,8 +2,8 @@ import unittest
 import numpy as np
 import numpy.testing as nptest
 
-import helper as bhlp
-import network as bnet
+from .. import helper as bhlp
+from .. import network as bnet
 
 np.random.seed(123456)
 

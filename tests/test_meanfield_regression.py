@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-import meanfield as bmf
+from .. import meanfield as bmf
 
 np.random.seed(123456)
 

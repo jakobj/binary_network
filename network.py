@@ -1,5 +1,10 @@
+# global imports
 import numpy as np
 import heapq as hq
+
+# local imports
+from . import helper as bhlp
+
 
 def simulate(W, b, sinit, steps, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
     record_ui = True if Nrec_ui > 0 else False

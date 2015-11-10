@@ -3,10 +3,10 @@ import numpy as np
 import numpy.testing as nptest
 import scipy.integrate as scint
 
-import helper as bhlp
-import network as bnet
-import meanfield as bmf
-import unitginzburgmeanfield as ugbmf
+from .. import helper as bhlp
+from .. import network as bnet
+from .. import meanfield as bmf
+from .. import unitginzburgmeanfield as ugbmf
 
 np.random.seed(123456)
 
