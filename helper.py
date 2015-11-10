@@ -94,6 +94,19 @@ def create_noise_connectivity_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_noise_connectivity_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
+    W = np.zeros((Nbm, Nnoise))
+    NE = int(gamma * Nnoise)
+    NI = int(Nnoise - NE)
+    KE = int(epsilon * NE)
+    KI = int(epsilon * NI)
+    for l in range(Nbm):
+        ind = np.random.permutation(np.arange(0, Nnoise))[:KE+KI]
+        W[l, ind[:KE]] = w
+        W[l, ind[KE:]] = -g * w
+    return W
+
+
 def generate_template(M, K, Kshared, w, Ktot, N, random=False):
     assert(M > 0 and K > 0)
     template = np.zeros((M, K))
