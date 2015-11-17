@@ -14,6 +14,13 @@ import scipy.stats
 #     """
 #     return scipy.stats.binom.pmf(m, M * K, 1. / N, 0)
 
+def random_initial_condition(N):
+    return np.random.randint(0, 2, N)
+
+
+def adjust_time_slices(a_time, steps_warmup):
+    return a_time[steps_warmup:]
+
 
 def outdegree_distribution(M, K, N, m):
     """probability to find a source with m outputs for choosing for M
