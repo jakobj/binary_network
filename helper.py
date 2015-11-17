@@ -110,6 +110,14 @@ def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
     return W
 
 
+def create_BRN_biases_threshold_condition(N, w, g, epsilon, gamma, mu_target):
+    return np.ones(N) * -1. * get_mu_input(epsilon, N, gamma, g, w, mu_target) - w / 2.
+
+
+def create_stoch_biases_target_activity(N, mu_target):
+    return np.ones(N) * sigmainv(mu_target)
+
+
 def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     """create a random realization of a weight matrix for Nnoise source
     projecting to Nbm targets with E/I connections of fixed weight.
@@ -437,11 +445,15 @@ def get_DKL(p, q, M=1):
         return DKL
 
 
-def theta(x, beta=1.):
+def theta(x):
     if abs(x) < 1e-15:
         raise ValueError('Invalid value in ecountered in theta(x).')
     else:
-        return 0 if x < 0 else 1
+        return x > 1
+
+
+def Ftheta(x, beta=1.):
+    return theta(beta * x)
 
 
 def sigma(x, beta=1.):
