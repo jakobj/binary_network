@@ -126,7 +126,7 @@ class MeanfieldTestCase(unittest.TestCase):
         sinit = np.array(np.random.randint(0, 2, N + Nnoise), dtype=np.int)
 
         times, a_s, a_times_ui, a_ui = bnet.simulate_eve(
-            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.theta], Nrec_ui=N)
+            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.Ftheta], Nrec_ui=N)
         a_ui = a_ui[200:]
         a_s = a_s[200:]
 

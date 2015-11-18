@@ -449,7 +449,7 @@ def theta(x):
     if abs(x) < 1e-15:
         raise ValueError('Invalid value in ecountered in theta(x).')
     else:
-        return x > 1
+        return x > 0
 
 
 def Ftheta(x, beta=1.):

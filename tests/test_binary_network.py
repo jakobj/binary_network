@@ -169,7 +169,7 @@ class NetworkTestCase(unittest.TestCase):
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
         a_times_brn, a_s_brn = bnet.simulate_eve(
-            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.theta])
+            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Ftheta])
         self.assertAlmostEqual(
             mu_target, np.mean(a_s_brn), delta=0.1 * np.mean(a_s_brn))
         times_bin_brn, st_brn = hlp.bin_binary_data(
@@ -222,7 +222,7 @@ class NetworkTestCase(unittest.TestCase):
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
         a_times_brn, a_s_brn = bnet.simulate_eve(
-            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.theta])
+            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Ftheta])
         self.assertTrue(abs(np.mean(a_s_brn) - mu_target) < 0.1 * mu_target)
         times_bin_brn, st_brn = hlp.bin_binary_data(
             a_times_brn, a_s_brn, tbin, 0., time)
@@ -249,16 +249,16 @@ class NetworkTestCase(unittest.TestCase):
             expected_cross, abs(crossf[abs(timelag) < 1e-10][0]), places=2)
 
     def test_input(self):
-        N = 12
-        Nnoise = 120
+        N = 20
+        Nnoise = 220
         sinit = np.zeros(N + Nnoise)
         tau = 10.
         Nrec = N
-        time = 1.5e4
-        mu_target = 0.42
+        time = 2e4
+        mu_target = 0.46
         Nrec_ui = N
-        beta = 0.5
 
+        beta = .8
         w = 0.2
         g = 8.
         gamma = 0.2
@@ -268,51 +268,24 @@ class NetworkTestCase(unittest.TestCase):
         expected_std_input = hlp.get_sigma_input(
             epsilon, Nnoise, gamma, g, w, mu_target)
 
-        # Network case (correlated sources)
-        W_brn = np.zeros((N + Nnoise, N + Nnoise))
-        W_brn[:N, N:] = hlp.create_noise_weight_matrix(
-            N, Nnoise, gamma, g, w, epsilon)
-        W_brn[N:, N:] = hlp.create_BRN_weight_matrix(
-            Nnoise, w, g, epsilon, gamma)
-        b_brn = np.zeros(N + Nnoise)
-        b_brn[:N] = -w / 2.
-        b_brn[N:] = -1. * \
-            hlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target) - \
-            1. * w / 2
-        for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
-            if i == 0:
-                a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = sim(
-                    W_brn, b_brn, sinit.copy(), time, Nrec,
-                    [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui, beta=beta)
-                steps_warmup = 0.1 * time / (N + Nnoise) * N
-            elif i == 1:
-                a_times_brn, a_s_brn, a_times_ui_brn, a_ui_brn = sim(
-                    W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec],
-                    [N + Nnoise], [hlp.theta], Nrec_ui=Nrec_ui, beta=beta)
-                steps_warmup = 0.1 * Nrec_ui * time / tau
-            a_ui_brn = a_ui_brn[steps_warmup:]
-            self.assertLess(abs(np.mean(a_ui_brn) + w / 2. - expected_mu_input),
-                            0.04 * abs(expected_mu_input))
-            self.assertLess(
-                (np.mean(np.std(a_ui_brn, axis=0)) - expected_std_input), 0)
-
         # Poisson case (independent sources)
         W = np.zeros((N + Nnoise, N + Nnoise))
         W[:N, N:] = hlp.create_noise_weight_matrix(
             N, Nnoise, gamma, g, w, epsilon)
         b = np.zeros(N + Nnoise)
         b[:N] = -w / 2.
-        b[N:] = hlp.sigmainv(mu_target)
+        b[N:] = hlp.sigmainv(mu_target, beta)
         for i, sim in enumerate([bnet.simulate, bnet.simulate_eve]):
             if i == 0:
                 a_times, a_s, a_times_ui, a_ui = sim(
-                    W, b, sinit.copy(), time, Nrec, [N, N + Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=Nrec_ui)
+                    W, b, sinit.copy(), time, Nrec, [N, N + Nnoise], [hlp.Ftheta, hlp.Fsigma], Nrec_ui, beta)
                 steps_warmup = 0.1 * time / (N + Nnoise) * N
             elif i == 1:
                 a_times, a_s, a_times_ui, a_ui = sim(
-                    W, b, tau, sinit.copy(), time, [0, Nrec], [N, N + Nnoise], [hlp.theta, hlp.Fsigma], Nrec_ui=Nrec_ui)
+                    W, b, tau, sinit.copy(), time, [0, Nrec], [N, N + Nnoise], [hlp.Ftheta, hlp.Fsigma], Nrec_ui, beta)
                 steps_warmup = 0.1 * Nrec_ui * time / tau
             a_ui = a_ui[steps_warmup:]
+            print np.mean(a_ui), expected_mu_input
             self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
                             0.05 * abs(expected_mu_input))
             self.assertLess(abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input),
