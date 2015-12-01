@@ -80,11 +80,13 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(0., np.sum(W - W.T))
 
         # test with normal distribution
+        mu = -1.
+        sigma = 1.5
         W = bhlp.create_BM_weight_matrix(
-            N, np.random.normal, loc=-1., scale=1.5)
+            N, np.random.normal, loc=mu, scale=sigma)
         weights = [W[i, j] for i in xrange(N) for j in xrange(N) if i != j]
-        self.assertAlmostEqual(-1., np.mean(weights), delta=0.01)
-        self.assertAlmostEqual(1.5, np.std(weights), delta=0.01)
+        self.assertAlmostEqual(mu, np.mean(weights), delta=0.02)
+        self.assertAlmostEqual(sigma, np.std(weights), delta=0.02)
         self.assertEqual((N, N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W - W.T))
