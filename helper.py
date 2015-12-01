@@ -47,7 +47,10 @@ def create_BM_weight_matrix(N, distribution, mu_weight=None, **kwargs):
 
     """
     W = distribution(size=(N, N), **kwargs)
-    W = 0.5 * (W + W.T)
+    # we can not just use 0.5 * (W + W.T), without altering distribution of weights
+    for i in xrange(N):
+        for j in xrange(i):
+            W[j, i] = W[i, j]
     W -= np.diag(W.diagonal())
     if mu_weight is not None:
         W += mu_weight - 1./(N *(N - 1)) * np.sum(W)
