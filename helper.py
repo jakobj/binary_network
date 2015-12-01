@@ -39,7 +39,7 @@ def shared_input_distribution(K, N, s):
     return scipy.stats.binom.pmf(s, K, 1. * K / N, 0)
 
 
-def create_BM_weight_matrix(N, distribution, **kwargs):
+def create_BM_weight_matrix(N, distribution, mu_weight=None, **kwargs):
     """creates a random weight matrix for a Boltzmann machine (diagonal=0,
     and symmetric weights), with weights drawn from
     distribution. parameters for the distribution need to be passed as
@@ -47,10 +47,11 @@ def create_BM_weight_matrix(N, distribution, **kwargs):
 
     """
     W = distribution(size=(N, N), **kwargs)
-    for i in range(N):
-        for j in range(i):
-            W[j, i] = W[i, j]
+    W = 0.5 * (W + W.T)
     W -= np.diag(W.diagonal())
+    if mu_weight is not None:
+        W += mu_weight - 1./(N *(N - 1)) * np.sum(W)
+        W -= np.diag(W.diagonal())
     return W
 
 
