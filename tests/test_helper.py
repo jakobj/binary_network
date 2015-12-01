@@ -67,7 +67,7 @@ class HelperTestCase(unittest.TestCase):
             theo_hist_shared, hist_shared, decimal=2)
 
     def test_BM_weight_matrix(self):
-        N = 500
+        N = 200
         expected_diag = np.zeros(N)
 
         # test with uniform distribution
@@ -80,10 +80,23 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(0., np.sum(W - W.T))
 
         # test with normal distribution
+        mu = -1.
+        sigma = 1.5
         W = bhlp.create_BM_weight_matrix(
-            N, np.random.normal, loc=-1., scale=1.5)
-        self.assertAlmostEqual(-1., np.mean(W), delta=0.05)
-        self.assertAlmostEqual(1.5, np.std(W), delta=0.01)
+            N, np.random.normal, loc=mu, scale=sigma)
+        weights = [W[i, j] for i in xrange(N) for j in xrange(N) if i != j]
+        self.assertAlmostEqual(mu, np.mean(weights), delta=0.02)
+        self.assertAlmostEqual(sigma, np.std(weights), delta=0.02)
+        self.assertEqual((N, N), np.shape(W))
+        nptest.assert_array_equal(expected_diag, W.diagonal())
+        self.assertEqual(0., np.sum(W - W.T))
+
+        # test with beta distribution and target mean
+        mu_weight = -1.45
+        W = bhlp.create_BM_weight_matrix(
+            N, np.random.beta, mu_weight=mu_weight, a=2., b=2.)
+        weights = [W[i, j] for i in xrange(N) for j in xrange(N) if i != j]
+        self.assertAlmostEqual(mu_weight, np.mean(weights), delta=0.01)
         self.assertEqual((N, N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W - W.T))
@@ -200,7 +213,7 @@ class HelperTestCase(unittest.TestCase):
             N, Nnoise, epsilon)
         self.assertGreaterEqual(1., np.max(W))
         self.assertLessEqual(-1., np.min(W))
-        self.assertLess(np.sum(W), 0.01 * N * Nnoise * epsilon)
+        self.assertAlmostEqual(0., np.mean(W), delta=0.01)
         for l in W:
             self.assertEqual(len(l[l > 0]) + len(l[l < 0]), epsilon * N)
 

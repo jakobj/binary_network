@@ -1,17 +1,18 @@
+sudo: false
 language: python
 python:
   - "2.7"
 branches:
   only:
     - master
-virtualenv:
-  system_site_packages: true
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq python-numpy python-scipy
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=$HOME/miniconda2/bin:$PATH
+  - conda update --yes conda
 install:
-  - pip install nose
-  - pip install coverage
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose coverage
 script:
   - nosetests --with-coverage
 after_success:
