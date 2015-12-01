@@ -244,7 +244,7 @@ def create_noise_recurrent_weight_matrix(Nbm, Nnoise, epsilon):
 
 
 def get_energy(W, b, s, beta=1.):
-    return -1. * beta * np.sum(0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
+    return -1. * beta * (0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
 
 
 def get_states(N):
