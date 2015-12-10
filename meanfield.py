@@ -20,7 +20,6 @@ class BinaryMeanfield(object):
     b is the bias vector (2d, corresponding to -1*threshold)
     """
 
-    def __init__(self, epsilon, N, gamma, g, w, b):
     def __init__(self, epsilon, N, gamma, g, w, b, K=None):
         if epsilon is not None:
             assert(K is None), 'Please provide connectivity OR indegree.'
