@@ -171,15 +171,11 @@ class HelperTestCase(unittest.TestCase):
         W = bhlp.create_noise_weight_matrix(M, Nnoise, gamma, g, w,
                                             epsilon)
         NEnoise = int(gamma * Nnoise)
-        NInoise = int(Nnoise - NEnoise)
-        KEnoise = int(epsilon * NEnoise)
-        KInoise = int(epsilon * NInoise)
 
         self.assertEqual(np.shape(W), (M, Nnoise))
         self.assertTrue(np.all(W[:, :NEnoise] >= 0.))
         self.assertTrue(np.all(W[:, NEnoise:] <= 0.))
-        self.assertEqual(len(np.where(W[:, :NEnoise] > 0.)[0]), KEnoise * M)
-        self.assertEqual(len(np.where(W[:, NEnoise:] < 0.)[0]), KInoise * M)
+        self.assertEqual(len(W[np.abs(W) > 0]), epsilon * Nnoise * M)
         self.assertEqual(np.unique(W[W > 0]), [w])
         self.assertEqual(np.unique(W[W < 0]), [-g * w])
         self.assertAlmostEqual(
