@@ -21,10 +21,19 @@ class BinaryMeanfield(object):
     """
 
     def __init__(self, epsilon, N, gamma, g, w, b):
+    def __init__(self, epsilon, N, gamma, g, w, b, K=None):
+        if epsilon is not None:
+            assert(K is None), 'Please provide connectivity OR indegree.'
+        elif epsilon is None:
+            assert(K is not None), 'Please provide connectivity OR indegree.'
         self.NE = int(gamma * N)
         self.NI = int(N - self.NE)
-        KE = int(epsilon * self.NE)
-        KI = int(epsilon * self.NI)
+        if epsilon is not None:
+            KE = int(epsilon * self.NE)
+            KI = int(epsilon * self.NI)
+        else:
+            KE = int(gamma * K)
+            KI = int(K - KE)
         self.K = np.array([[KE, KI],
                            [KE, KI]])
         self.J = np.array([[w, -g*w],

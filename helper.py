@@ -95,7 +95,7 @@ def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
     network of N neurons with fixed weights.
 
     """
-    return create_BRN_weight_matrix_fixed_indegree(N, w, g, epsilon * N, gamma)
+    return create_BRN_weight_matrix_fixed_indegree(N, w, g, int(epsilon * N), gamma)
 
 
 def create_BRN_weight_matrix_fixed_indegree(N, w, g, K, gamma):
@@ -135,7 +135,7 @@ def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     projecting to Nbm targets with E/I connections of fixed weight.
 
     """
-    return create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, epsilon * Nnoise)
+    return create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise))
 
 
 def create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
@@ -196,7 +196,7 @@ def generate_template(M, K, Kshared, w, Ktot, N, random=False):
 
 
 def create_noise_weight_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, random_shared=False):
-    return create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, epsilon * Nnoise, random_shared=random_shared)
+    return create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, int(epsilon * Nnoise), random_shared=random_shared)
 
 
 def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, Knoise, random_shared=False):
@@ -233,7 +233,7 @@ def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g
 
 
 def create_hybridnoise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
-    return create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, epsilon * Nnoise)
+    return create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise))
 
 
 def create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
@@ -261,7 +261,7 @@ def create_indep_noise_weight_matrix(Nbm, Knoise, gamma, g, w):
 
 def create_noise_recurrent_weight_matrix(Nbm, Nnoise, epsilon):
     W = np.zeros((Nnoise, Nbm))
-    K = epsilon * Nbm
+    K = int(epsilon * Nbm)
     for l in range(Nnoise):
         ind = np.random.permutation(np.arange(0, Nbm))[:K]
         W[l, ind] = 2. * (np.random.rand(K) - 0.5)
@@ -519,7 +519,7 @@ def get_mu_input(epsilon, N, gamma, g, w, mu):
     activity
 
     """
-    return get_mu_input_fixed_indegree(epsilon * N, gamma, g, w, mu)
+    return get_mu_input_fixed_indegree(int(epsilon * N), gamma, g, w, mu)
 
 
 def get_sigma_input(epsilon, N, gamma, g, w, mu):
@@ -527,7 +527,7 @@ def get_sigma_input(epsilon, N, gamma, g, w, mu):
     and presynaptic activity
 
     """
-    return get_sigma_input_fixed_indegree(epsilon * N, gamma, g, w, mu)
+    return get_sigma_input_fixed_indegree(int(epsilon * N), gamma, g, w, mu)
 
 
 def get_mu_input_fixed_indegree(K, gamma, g, w, mu):
