@@ -139,6 +139,27 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(
             1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma))
 
+    def test_BRN_weight_matrix_fixed_indegree(self):
+        N = 100
+        K = 20
+        w = 0.2
+        g = 6
+        gamma = 0.8
+        W = bhlp.create_BRN_weight_matrix_fixed_indegree(N, w, g, K, gamma)
+        expected_diag = np.zeros(N)
+        nptest.assert_array_equal(expected_diag, W.diagonal())
+        NE = int(gamma * N)
+        self.assertEqual(np.shape(W), (N, N))
+        self.assertTrue(np.all(W[:, :NE] >= 0.))
+        self.assertTrue(np.all(W[:, NE:] <= 0.))
+        self.assertEqual(len(W[np.abs(W) > 0]), K * N)
+        self.assertAlmostEqual(len(np.where(W[:, :NE] > 0.)[0]), gamma * K * N)
+        self.assertAlmostEqual(len(np.where(W[:, NE:] < 0.)[0]), (1. - gamma) * K * N)
+        self.assertEqual(np.unique(W[W > 0]), [w])
+        self.assertEqual(np.unique(W[W < 0]), [-g * w])
+        self.assertAlmostEqual(
+            1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma))
+
     def test_noise_weight_matrix(self):
         Knoise = 100
         M = 3
@@ -175,8 +196,11 @@ class HelperTestCase(unittest.TestCase):
             Nnoise = int(Knoise / epsilon)
             W = bhlp.create_noise_weight_matrix_fixed_indegree(
                 M, Nnoise, gamma, g, w, Knoise)
-            self.assertEqual(len(np.where(W > 0.)[0]), gamma * Knoise * M)
-            self.assertEqual(len(np.where(W < 0.)[0]), (1. - gamma) * Knoise * M)
+            self.assertEqual(np.shape(W), (M, Nnoise))
+            self.assertTrue(np.all(W[:, :gamma * Nnoise] >= 0.))
+            self.assertTrue(np.all(W[:, gamma * Nnoise:] <= 0.))
+            self.assertAlmostEqual(len(np.where(W > 0.)[0]), gamma * Knoise * M)
+            self.assertAlmostEqual(len(np.where(W < 0.)[0]), (1. - gamma) * Knoise * M)
             self.assertEqual(len(np.where(np.abs(W) > 0.)[0]), Knoise * M)
             self.assertAlmostEqual(np.sum(W[W > 0]), gamma * Knoise * M * w)
             self.assertAlmostEqual(np.sum(W[W < 0]), -g * (1. - gamma) * Knoise * M * w)

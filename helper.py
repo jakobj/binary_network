@@ -114,6 +114,30 @@ def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
     return W
 
 
+def create_BRN_weight_matrix_fixed_indegree(N, w, g, K, gamma):
+    """create a random realization of a weight matrix for an E/I
+    network of N neurons with fixed weights.
+
+    """
+    W = np.zeros((N, N))
+    NE = int(gamma * N)
+    NI = int(N - NE)
+    KE = int(gamma * K)
+    KI = int(K - KE)
+    for i in range(N):
+        if NE > 0:
+            indE = np.arange(0, NE)
+            indE = indE[indE != i]
+            indE = np.random.permutation(indE)[:KE]
+            W[i, indE] = w
+        if NI > 0:
+            indI = np.arange(NE, N)
+            indI = indI[indI != i]
+            indI = np.random.permutation(indI)[:KI]
+            W[i, indI] = -g * w
+    return W
+
+
 def create_BRN_biases_threshold_condition(N, w, g, epsilon, gamma, mu_target):
     return np.ones(N) * -1. * get_mu_input(epsilon, N, gamma, g, w, mu_target) - w / 2.
 
