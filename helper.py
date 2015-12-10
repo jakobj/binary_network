@@ -53,7 +53,7 @@ def create_BM_weight_matrix(N, distribution, mu_weight=None, **kwargs):
             W[j, i] = W[i, j]
     W -= np.diag(W.diagonal())
     if mu_weight is not None:
-        W += mu_weight - 1./(N *(N - 1)) * np.sum(W)
+        W += mu_weight - 1. / (N * (N - 1)) * np.sum(W)
         W -= np.diag(W.diagonal())
     return W
 
@@ -254,12 +254,56 @@ def create_noise_weight_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, r
     return W
 
 
+def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, Knoise, random_shared=False):
+    NE = int(gamma * Nnoise)
+    NI = int(Nnoise - NE)
+    KE = int(gamma * Knoise)
+    KI = int(Knoise - KE)
+    KEshared = 0
+    KIshared = 0
+    if NE > 0:
+        KEshared = int(1. * KE ** 2 / NE)
+    if NI > 0:
+        KIshared = int(1. * KI ** 2 / NI)
+    # check whether it is possible to realize desired connectivity;
+    # this translate to (M - 1 ) * epsilon <= 1
+    assert(KEshared * (M - 1) <= KE), '[error] impossible parameter choices'
+    assert(KIshared * (M - 1) <= KI), '[error] impossible parameter choices'
+    W = np.zeros((M, NE + NI))
+    for k in xrange(2):
+        N = [NE, NI][k]
+        K = [KE, KI][k]
+        Kshared = [KEshared, KIshared][k]
+        wt = [w, -g * w][k]
+        if K > 0:
+            offset_i = k * NE
+            Kshared_offset = np.zeros(M)
+            for l in xrange(M):
+                Kshared_counts, template = generate_template(
+                    M - l, K - Kshared_offset[l], Kshared, wt, K, N, random_shared)
+                W[l:M, offset_i:offset_i + K - Kshared_offset[l]] = template
+                offset_i += K - Kshared_offset[l]
+                Kshared_offset[l:] += Kshared_counts
+    return W
+
+
 def create_hybridnoise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     W = np.zeros((Nbm, Nnoise))
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(epsilon * NE)
     KI = int(epsilon * NI)
+    for l in range(Nbm):
+        ind = np.random.permutation(np.arange(0, Nnoise))[:KE + KI]
+        W[l, ind[:KE]] = w
+        W[l, ind[KE:]] = -g * w
+    return W
+
+
+def create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
+    W = np.zeros((Nbm, Nnoise))
+    KE = int(gamma * Knoise)
+    KI = int(Knoise - KE)
     for l in range(Nbm):
         ind = np.random.permutation(np.arange(0, Nnoise))[:KE + KI]
         W[l, ind[:KE]] = w
@@ -294,6 +338,10 @@ def get_energy(W, b, s, beta=1.):
 
 def get_states(N):
     return np.array([np.array(x) for x in itertools.product([0, 1], repeat=N)])
+
+
+def get_states_strings(N):
+    return [''.join(str(s)).replace('[', '').replace(']', '').replace(' ', '') for s in get_states(N)]
 
 
 def get_conditionals_from_joints(N, joints, rvs, vals):
@@ -545,6 +593,23 @@ def get_sigma_input(epsilon, N, gamma, g, w, mu):
     """
     sigma2 = get_sigma2(mu)
     return np.sqrt((gamma + (1. - gamma) * g ** 2) * epsilon * N * w ** 2 * sigma2)
+
+
+def get_mu_input_fixed_indegree(K, N, gamma, g, w, mu):
+    """returns mean input for given connection statistics and presynaptic
+    activity
+
+    """
+    return (gamma - (1. - gamma) * g) * K * w * mu
+
+
+def get_sigma_input_fixed_indegree(K, N, gamma, g, w, mu):
+    """returns standard deviation of input for given connection statistics
+    and presynaptic activity
+
+    """
+    sigma2 = get_sigma2(mu)
+    return np.sqrt((gamma + (1. - gamma) * g ** 2) * K * w ** 2 * sigma2)
 
 
 def get_adjusted_weights_and_bias(W, b, b_eff, beta_eff, beta):
