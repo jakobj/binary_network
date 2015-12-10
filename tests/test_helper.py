@@ -164,6 +164,23 @@ class HelperTestCase(unittest.TestCase):
         self.assertAlmostEqual(
             1. * len(W[W > 0]) / len(W[W < 0]), gamma / (1. - gamma), delta=0.1)
 
+    def test_noise_weight_matrix_fixed_indegree(self):
+        M = 100
+        Knoise = 200
+        w = 0.3
+        g = 8.
+        gamma = 0.3
+        a_epsilon = np.arange(0.05, 1., 0.04)
+        for epsilon in a_epsilon:
+            Nnoise = int(Knoise / epsilon)
+            W = bhlp.create_noise_weight_matrix_fixed_indegree(
+                M, Nnoise, gamma, g, w, Knoise)
+            self.assertEqual(len(np.where(W > 0.)[0]), gamma * Knoise * M)
+            self.assertEqual(len(np.where(W < 0.)[0]), (1. - gamma) * Knoise * M)
+            self.assertEqual(len(np.where(np.abs(W) > 0.)[0]), Knoise * M)
+            self.assertAlmostEqual(np.sum(W[W > 0]), gamma * Knoise * M * w)
+            self.assertAlmostEqual(np.sum(W[W < 0]), -g * (1. - gamma) * Knoise * M * w)
+
     def test_hybridnoise_weight_matrix(self):
         Knoise = 100
         N = 3

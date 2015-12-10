@@ -140,6 +140,23 @@ def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
+def create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
+    """create a random realization of a weight matrix for Nnoise source
+    projecting to Nbm targets with E/I connections of fixed weight.
+
+    """
+    W = np.zeros((Nbm, Nnoise))
+    NEnoise = int(gamma * Nnoise)
+    KEnoise = int(gamma * Knoise)
+    KInoise = int(Knoise - KEnoise)
+    for l in W:
+        indE = np.random.permutation(np.arange(0, NEnoise))[:KEnoise]
+        l[indE] = w
+        indI = np.random.permutation(np.arange(NEnoise, Nnoise))[:KInoise]
+        l[indI] = -g * w
+    return W
+
+
 def create_noise_weight_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
     W = np.zeros((Nbm, Nnoise))
     NE = int(gamma * Nnoise)
