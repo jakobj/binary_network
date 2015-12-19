@@ -147,24 +147,24 @@ def create_BRN_weight_matrix_fixed_indegree(N, w, g, K, gamma):
 
 
 def create_BRN_biases_threshold_condition(N, w, g, epsilon, gamma, mu_target):
+    """(see create_BM_biases_threshold_condition)"""
     return np.ones(N) * -1. * get_mu_input(epsilon, N, gamma, g, w, mu_target) - w / 2.
 
 
-def create_stoch_biases_target_activity(N, mu_target):
+def create_stoch_biases_from_target_activity(N, mu_target):
+    """create biases for sigmoidal units from a target activity by using
+    the inverse of the sigmoid"""
     return np.ones(N) * sigmainv(mu_target)
 
 
 def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
-    """create a random realization of a weight matrix for Nnoise source
-    projecting to Nbm targets with E/I connections of fixed weight.
-
-    """
     return create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise))
 
 
 def create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
-    """create a random realization of a weight matrix for Nnoise source
-    projecting to Nbm targets with E/I connections of fixed weight.
+    """create a random realization of a weight matrix for Nnoise sources
+    projecting to Nbm targets with E/I connections of fixed weight and
+    with fixed total in degree Knoise.
 
     """
     W = np.zeros((Nbm, Nnoise))
@@ -180,11 +180,18 @@ def create_noise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
 
 
 def create_noise_weight_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
+    return create_noise_weight_matrix_2dshuffle_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise))
+
+
+def create_noise_weight_matrix_2dshuffle_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
+    """create a random realizations of a weight matrix for Nnoise sources
+    projecting to Nbm targets with identity of presynaptic neurons
+    shuffled across E/I populations
+
+    """
     W = np.zeros((Nbm, Nnoise))
-    NE = int(gamma * Nnoise)
-    NI = int(Nnoise - NE)
-    KE = int(epsilon * NE)
-    KI = int(epsilon * NI)
+    KE = int(gamma * Knoise)
+    KI = int(Knoise - KE)
     for l in range(Nbm):
         ind = np.random.permutation(np.arange(0, Nnoise))[:KE + KI]
         W[l, ind[:KE]] = w
@@ -192,13 +199,13 @@ def create_noise_weight_matrix_2dshuffle(Nbm, Nnoise, gamma, g, w, epsilon):
     return W
 
 
-def generate_template(M, K, Kshared, w, Ktot, N, random=False):
-    assert(M > 0 and K > 0)
-    template = np.zeros((M, K))
+def _generate_template(Nbm, K, Kshared, w, Ktot, N, random=False):
+    assert(Nbm > 0 and K > 0)
+    template = np.zeros((Nbm, K))
     l = 0
     i = 0
-    Kshared_counts = np.zeros(M)
-    while l < M:
+    Kshared_counts = np.zeros(Nbm)
+    while l < Nbm:
         if l == 0:
             template[l, i] = w
             i += 1
@@ -219,11 +226,17 @@ def generate_template(M, K, Kshared, w, Ktot, N, random=False):
     return Kshared_counts, template
 
 
-def create_noise_weight_matrix_fixed_pairwise(M, Nnoise, gamma, g, w, epsilon, random_shared=False):
-    return create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, int(epsilon * Nnoise), random_shared=random_shared)
+def create_noise_weight_matrix_fixed_pairwise(Nbm, Nnoise, gamma, g, w, epsilon, random_shared=False):
+    return create_noise_weight_matrix_fixed_pairwise_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise), random_shared=random_shared)
 
 
-def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g, w, Knoise, random_shared=False):
+def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise, random_shared=False):
+    """create a random realizations of a weight matrix for Nnoise sources
+    projecting to Nbm targets with identity of presynaptic neurons
+    shuffled across E/I populations. the number of shared sources
+    (KEshared/KIshared) is fixed and equal for each pair of targets.
+
+    """
     NE = int(gamma * Nnoise)
     NI = int(Nnoise - NE)
     KE = int(gamma * Knoise)
@@ -235,10 +248,10 @@ def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g
     if NI > 0:
         KIshared = int(1. * KI ** 2 / NI)
     # check whether it is possible to realize desired connectivity;
-    # this translate to (M - 1 ) * epsilon <= 1
-    assert(KEshared * (M - 1) <= KE), '[error] impossible parameter choices'
-    assert(KIshared * (M - 1) <= KI), '[error] impossible parameter choices'
-    W = np.zeros((M, NE + NI))
+    # this translate to (Nbm - 1 ) * epsilon <= 1
+    assert(KEshared * (Nbm - 1) <= KE), '[error] impossible parameter choices'
+    assert(KIshared * (Nbm - 1) <= KI), '[error] impossible parameter choices'
+    W = np.zeros((Nbm, NE + NI))
     for k in xrange(2):
         N = [NE, NI][k]
         K = [KE, KI][k]
@@ -246,32 +259,24 @@ def create_noise_weight_matrix_fixed_pairwise_fixed_indegree(M, Nnoise, gamma, g
         wt = [w, -g * w][k]
         if K > 0:
             offset_i = k * NE
-            Kshared_offset = np.zeros(M)
-            for l in xrange(M):
-                Kshared_counts, template = generate_template(
-                    M - l, K - Kshared_offset[l], Kshared, wt, K, N, random_shared)
-                W[l:M, offset_i:offset_i + K - Kshared_offset[l]] = template
+            Kshared_offset = np.zeros(Nbm)
+            for l in xrange(Nbm):
+                Kshared_counts, template = _generate_template(
+                    Nbm - l, K - Kshared_offset[l], Kshared, wt, K, N, random_shared)
+                W[l:Nbm, offset_i:offset_i + K - Kshared_offset[l]] = template
                 offset_i += K - Kshared_offset[l]
                 Kshared_offset[l:] += Kshared_counts
     return W
 
 
-def create_hybridnoise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
-    return create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, int(epsilon * Nnoise))
-
-
-def create_hybridnoise_weight_matrix_fixed_indegree(Nbm, Nnoise, gamma, g, w, Knoise):
-    W = np.zeros((Nbm, Nnoise))
-    KE = int(gamma * Knoise)
-    KI = int(Knoise - KE)
-    for l in range(Nbm):
-        ind = np.random.permutation(np.arange(0, Nnoise))[:KE + KI]
-        W[l, ind[:KE]] = w
-        W[l, ind[KE:]] = -g * w
-    return W
-
-
 def create_indep_noise_weight_matrix(Nbm, Knoise, gamma, g, w):
+    """create a weight matrix for Nbm * Knoise sources projecting to Nbm
+    targets with a fixed indegree of Knoise. no shared inputs are
+    allowed, hence each target receives uncorrelated input of the
+    sources are uncorrelated.
+
+    """
+
     Nnoise = Nbm * Knoise
     W = np.zeros((Nbm, Nnoise))
     KE = int(gamma * Knoise)
@@ -283,28 +288,44 @@ def create_indep_noise_weight_matrix(Nbm, Knoise, gamma, g, w):
     return W
 
 
-def create_noise_recurrent_weight_matrix(Nbm, Nnoise, epsilon):
-    W = np.zeros((Nnoise, Nbm))
-    K = int(epsilon * Nbm)
-    for l in range(Nnoise):
-        ind = np.random.permutation(np.arange(0, Nbm))[:K]
-        W[l, ind] = 2. * (np.random.rand(K) - 0.5)
-    return W
-
-
 def get_energy(W, b, s, beta=1.):
+    """returns the energy of a state in a boltzmann machine"""
     return -1. * beta * (0.5 * np.dot(s.T, np.dot(W, s)) + np.dot(b, s))
 
 
-def get_states(N):
-    return np.array([np.array(x) for x in itertools.product([0, 1], repeat=N)])
+def get_theo_joints(W, b, beta):
+    """calculate the theoretical state distribution for a Boltzmann
+    machine
+
+    """
+    N = len(b)
+    joints = []
+    states = get_states(N)
+    for s in states:
+        joints.append(np.exp(-1. * get_energy(W, b, s, beta)))
+    joints /= np.sum(joints)
+    return joints
 
 
-def get_states_strings(N):
-    return [''.join(str(s)).replace('[', '').replace(']', '').replace(' ', '') for s in get_states(N)]
+def get_theo_joints_multi_bm(W, b, beta, M):
+    N = len(b) / M
+    joints = []
+    for i in range(M):
+        joints.append(get_theo_joints(W[i * N:(i + 1) * N, i * N:(i + 1) * N], b[i * N:(i + 1) * N], beta))
+    if M == 1:
+        return joints[0]
+    else:
+        return joints
 
 
 def get_conditionals_from_joints(N, joints, rvs, vals):
+    """calculate a conditional distribution
+    N: number of random variables
+    joints: joint distribution
+    rvs: which random variables to condition on
+    vals: states of conditioned random variables
+
+    """
     states = get_states(N)
     states_cond = []
     cond = []
@@ -316,43 +337,41 @@ def get_conditionals_from_joints(N, joints, rvs, vals):
     return states_cond, cond
 
 
+def get_marginals_from_joints(N, joints, rvs):
+    """calculate marginal distributions
+    N: number of random variables
+    joints: joint distribution
+    rvs: compute marginals for these random variables
+
+    """
+    states = get_states(N)
+    m = []
+    for i in rvs:
+        m.append(np.sum(joints[states[:, i] == 1]))
+    return rvs, m
+
+
 def get_theo_marginals(W, b, beta):
+    """calculate marginal distributions of all random variables"""
+    N = len(b)
+    joints = get_theo_joints(W, b, beta)
+    rvs = np.arange(0, N)
+    return get_marginals_from_joints(N, joints, rvs)
+
+
+def get_theo_mean_and_covariances(W, b, beta):
+    """calculate rate and covariances for Boltzmann machine from
+    connectivity and biases"""
     N = len(b)
     joints = get_theo_joints(W, b, beta)
     states = get_states(N)
-    m = np.zeros(N)
-    for i in range(N):
-        m[i] = np.sum(joints[states[:, i] == 1])
-    return m
-
-
-def get_theo_covariances(W, b, beta):
-    N = len(b)
-    joints = get_theo_joints(W, b, beta)
-    states = get_states(N)
-    m = get_theo_marginals(W, b, beta)
+    rvs, m = get_theo_marginals(W, b, beta)
     cov = np.zeros((N, N))
     for i in range(N):
         for j in range(N):
             cov[i, j] = np.sum(joints[np.logical_and(
                 states[:, i] == 1, states[:, j] == 1)]) - m[i] * m[j]
     return m, cov
-
-
-def get_theo_joints(W, b, beta, M=1):
-    N = len(b) / M
-    joints = []
-    for i in range(M):
-        p = []
-        states = get_states(N)
-        for state in states:
-            p.append(
-                np.exp(-1. * get_energy(np.array(W[i * N:(i + 1) * N, i * N:(i + 1) * N]), np.array(b[i * N:(i + 1) * N]), np.array(state), beta)))
-        joints.append(np.array(p) / np.sum(p))
-    if M == 1:
-        return joints[0]
-    else:
-        return joints
 
 
 def get_sigma2(mu):
@@ -387,7 +406,15 @@ def get_beta_from_sigma_input(sigma_input):
     return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
 
 
+def get_steps_warmup(rNrec, Twarmup, tau):
+    Nrec = rNrec[1] - rNrec[0]
+    assert(Nrec >= 0)
+    return int(np.ceil(1. * Nrec * Twarmup / tau))
+
+
 def get_joints(a_s, steps_warmup, M=1, prior=None):
+    """create joint distribution of network states from recorded state
+    array. expected array representation of network state."""
     steps_tot = len(a_s[steps_warmup:])
     N = len(a_s[0, :]) / M
     a_joints = np.empty((M, 2 ** N))
@@ -401,6 +428,8 @@ def get_joints(a_s, steps_warmup, M=1, prior=None):
             for s in possible_states:
                 states[tuple(s)] = 1.
             steps_tot += len(possible_states)
+        else:
+            raise NotImplementedError('Unknown prior.')
         for s in a_s[steps_warmup:, i * N:(i + 1) * N]:
             states[tuple(s)] += 1
         states_sorted = np.array([it[1] for it in sorted(states.items())])
@@ -412,16 +441,16 @@ def get_joints(a_s, steps_warmup, M=1, prior=None):
         return a_joints
 
 
-def get_steps_warmup(rNrec, Twarmup, tau):
-    Nrec = rNrec[1] - rNrec[0]
-    assert(Nrec >= 0)
-    return int(np.ceil(1. * Nrec * Twarmup / tau))
-
-
 def get_joints_sparse(a_s, N, steps_warmup, prior=None):
+    """create joint distribution of network states from recorded state
+    array. expected integer representation of network state."""
     if prior is None:
         pass
     elif prior == 'uniform':
+        # assuming a uniform prior, i.e., each state is equally
+        # likely. we add one realization of each state to the state
+        # vector. given no recorded data, this corresponds to a
+        # uniform prior.
         for s in get_states(N):
             a_s = np.append(a_s, state_array_to_int(s))
     hist, bins = np.histogram(a_s[steps_warmup:], bins=np.arange(0, 2 ** N + 1), density=True)
@@ -434,79 +463,78 @@ def get_joints_sparse_multi_bm(a_s, N, M, steps_warmup, prior=None):
     return joints
 
 
-def get_all_states_from_sparse(a_s, N, steps_warmup):
-    return np.array([state_array_from_int(s, N) for s in a_s[steps_warmup:]])
+def get_marginals(a_s, steps_warmup):
+    """calculate marginals for each unit for a list of states."""
+    return np.mean(a_s[steps_warmup:], axis=0)
 
 
-def get_marginals(a_s, steps_warmup, M=1):
+def get_marginals_multi_bm(a_s, steps_warmup, M):
     N = len(a_s[0, :]) / M
     a_marginals = np.empty((M, N))
     for j in range(M):
         for i in range(N):
-            a_marginals[j, i] = np.mean(a_s[steps_warmup:, j * N + i])
+            a_marginals[j, :] = get_marginals(a_s[:, j * N:(j + 1) * N])
     if M == 1:
         return a_marginals[0]
     else:
         return a_marginals
 
 
+def get_all_states_from_sparse(a_s, N, steps_warmup):
+    """create array representation of list of network states from integer
+    representation."""
+    return np.array([state_array_from_int(s, N) for s in a_s[steps_warmup:]])
+
+
 def get_euclidean_distance(x, y):
-    return np.sqrt(np.dot(x - y, x - y))
+    """calculate the euclidean distance of two vectors."""
+    return np.linalg.norm(x - y)
 
 
-def get_DKL(p, q, M=1):
+def get_DKL(p, q):
     """returns the Kullback-Leibler divergence of distributions p and q
 
     """
+    assert(np.sum(p) - 1. < 1e-12), 'Joint densities must be normalized.'
+    assert(np.sum(q) - 1. < 1e-12), 'Joint densities must be normalized.'
+    assert(np.all(p >= 0.)), 'Joint densities must be normalized.'
+    assert(np.all(q >= 0.)), 'Joint densities must be normalized.'
+
+    return np.sum(p * np.log(p / q))
+
+
+def get_DKL_multi_bm(p, q, M):
     assert(np.shape(p) == np.shape(q))
-    if M == 1:
-        p = [p]
-        q = [q]
     DKL = []
     for j in range(M):
-        if abs(np.sum(p[j]) - 1.) > 1e-12 or abs(np.sum(q[j]) - 1.) > 1e-12:
-            raise ValueError('Joint densities must be normalized.')
-        if np.any(p[j] <= 0) or np.any(q[j] <= 0):
-            DKL.append(np.nan)
-        else:
-            DKL.append(np.sum([p[j][i] * np.log(p[j][i] / q[j][i])
-                               for i in range(len(p[j]))]))
-    if M == 1:
-        return DKL[0]
-    else:
-        return DKL
+        DKL.append(get_DKL(p[j], q[j]))
+    return DKL
 
 
 def theta(x):
-    if abs(x) < 1e-15:
-        raise ValueError('Invalid value in ecountered in theta(x).')
-    else:
-        return x > 0
+    """heaviside function."""
+    return int(x >= 0)
 
 
 def Ftheta(x, beta=1.):
-    return theta(beta * x)
+    """deterministic activation function (McCulloch-Pitts)"""
+    return int(x >= 0)
 
 
 def sigma(x, beta=1.):
-    """sigmoidal function
-
-    """
+    """sigmoid function"""
     return 1. / (1. + np.exp(-beta * x))
 
 
 def Fsigma(x, beta=1.):
-    """sigmoidal activation function for stochastic binary neurons
-
-    """
-    return 0 if 1. / (1. + np.exp(-beta * x)) < np.random.rand() else 1
+    """sigmoid activation function (Ginzburg)"""
+    return int(1. / (1. + np.exp(-beta * x)) > np.random.rand())
 
 
 def Ferfc(x, beta=1.):
     """activation function from complementary error function for
-    stochastic binary neurons
-    """
-    return 0 if 0.5 * scipy.special.erfc(-1. / beta * x) < np.random.rand() else 1
+    stochastic binary neurons (McCulloch-Pitts + white noise)"""
+    return (0.5 * scipy.special.erfc(-1. / beta * x) > np.random.rand())
 
 
 def sigmainv(y, beta=1.):
@@ -525,20 +553,20 @@ def get_mu_input(epsilon, N, gamma, g, w, mu):
     return get_mu_input_fixed_indegree(int(epsilon * N), gamma, g, w, mu)
 
 
-def get_sigma_input(epsilon, N, gamma, g, w, mu):
-    """returns standard deviation of input for given connection statistics
-    and presynaptic activity
-
-    """
-    return get_sigma_input_fixed_indegree(int(epsilon * N), gamma, g, w, mu)
-
-
 def get_mu_input_fixed_indegree(K, gamma, g, w, mu):
     """returns mean input for given connection statistics and presynaptic
     activity
 
     """
     return (gamma - (1. - gamma) * g) * K * w * mu
+
+
+def get_sigma_input(epsilon, N, gamma, g, w, mu):
+    """returns standard deviation of input for given connection statistics
+    and presynaptic activity
+
+    """
+    return get_sigma_input_fixed_indegree(int(epsilon * N), gamma, g, w, mu)
 
 
 def get_sigma_input_fixed_indegree(K, gamma, g, w, mu):
@@ -595,47 +623,56 @@ def autocorrf(times_bin, st, tmax):
 
 
 def crosscorrf(times_bin, st, tmax):
-    """returns the population averaged autocorrelation function of the
+    """returns the population averaged crosscorrelation function of the
     binned signal st
 
     """
     N = len(st)
+    # compute autocorrelation of compound signal
     times_cauto, cauto = autocorrf(times_bin, [np.sum(st, axis=0)], tmax)
+    # compute marginal autocorrelations
     times_autof, mu_autof = autocorrf(times_bin, st, tmax)
+    # calculate cross correlation from compound and marginal autocorrelations
     mu_crossf = 1. / (N * (N - 1)) * (cauto - 1. * N * mu_autof)
     return times_autof, mu_autof, mu_crossf
 
 
-def get_isi(N, a_times, a_s):
+def get_isi(a_times, a_s):
+    """calculate intervals of state transitions (not updates!) for each
+    unit."""
+    N = len(a_s[0])
     isi = []
-    t0 = []
+    t_last = []
     for i in xrange(N):
         isi.append([])
-        t0.append(0)
-    s0 = a_s[0]
+        t_last.append(0)
+    s_last = a_s[0]
     for i, s in enumerate(a_s):
-        if np.any(s != s0):
-            pos = np.where(s != s0)[0][0]
-            isi[pos].append(a_times[i] - t0[pos])
-            s0 = s
-            t0[pos] = a_times[i]
-    return isi
+        if np.any(s != s_last):
+            pos = np.where(s != s_last)[0][0]
+            isi[pos].append(a_times[i] - t_last[pos])
+            s_last = s
+            t_last[pos] = a_times[i]
+    return np.array(isi)
 
 
-def get_transition_count(N, a_s, total=False):
-    if total:
+def get_transition_count(a_s, average=False):
+    """calculate number of state transitions (not updates!) for each
+    unit."""
+    N = len(a_s[0])
+    if average:
         counts = 0
     else:
         counts = np.zeros(N)
-    s0 = a_s[0]
+    s_last = a_s[0]
     for i, s in enumerate(a_s):
-        if np.any(s != s0):
-            if total:
+        if np.any(s != s_last):
+            if average:
                 counts += 1
             else:
-                pos = np.where(s != s0)[0][0]
+                pos = np.where(s != s_last)[0][0]
                 counts[pos] += 1
-            s0 = s
-    if total:
+            s_last = s
+    if average:
         counts *= 1. / N
     return counts

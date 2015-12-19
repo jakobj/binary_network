@@ -121,7 +121,7 @@ class NetworkTestCase(unittest.TestCase):
                 a_s = sim(W, b, tau, sinit, steps * tau / N, [0, Nrec],
                           [N], [hlp.Fsigma], beta=beta)[1]
             marginals = hlp.get_marginals(a_s, 0)
-            expected_marginals = hlp.get_theo_marginals(W, b, beta)
+            rvs, expected_marginals = hlp.get_theo_marginals(W, b, beta)
             nptest.assert_array_almost_equal(
                 expected_marginals, marginals, decimal=2)
 
@@ -282,7 +282,6 @@ class NetworkTestCase(unittest.TestCase):
                     W, b, tau, sinit.copy(), time, [0, Nrec], [N, N + Nnoise], [hlp.Ftheta, hlp.Fsigma], Nrec_ui, beta)
                 steps_warmup = 0.1 * Nrec_ui * time / tau
             a_ui = a_ui[steps_warmup:]
-            print np.mean(a_ui), expected_mu_input
             self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
                             0.05 * abs(expected_mu_input))
             self.assertLess(abs(np.mean(np.std(a_ui, axis=0)) - expected_std_input),

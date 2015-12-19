@@ -73,7 +73,7 @@ class HelperTestCase(unittest.TestCase):
 
         nptest.assert_array_almost_equal(theo_hist_out, hist_out, decimal=2)
 
-    def test_binomial_shared_inputs(self):
+    def test_shared_input_distribution(self):
         M = 200
         N = 2000
         gamma = 0.8
@@ -104,7 +104,7 @@ class HelperTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(
             theo_hist_shared, hist_shared, decimal=2)
 
-    def test_BM_weight_matrix(self):
+    def test_create_BM_weight_matrix(self):
         N = 200
         expected_diag = np.zeros(N)
 
@@ -239,7 +239,7 @@ class HelperTestCase(unittest.TestCase):
             self.assertAlmostEqual(np.sum(W[W > 0]), gamma * Knoise * M * w)
             self.assertAlmostEqual(np.sum(W[W < 0]), -g * (1. - gamma) * Knoise * M * w)
 
-    def test_hybridnoise_weight_matrix(self):
+    def test_noise_weight_matrix_2dshuffle(self):
         Knoise = 100
         N = 3
         w = 0.2
@@ -247,7 +247,7 @@ class HelperTestCase(unittest.TestCase):
         epsilon = 0.9
         Nnoise = int(Knoise / epsilon)
         gamma = 0.3
-        W = bhlp.create_hybridnoise_weight_matrix(
+        W = bhlp.create_noise_weight_matrix_2dshuffle(
             N, Nnoise, gamma, g, w, epsilon)
         Knoise = int(epsilon * Nnoise)
         KEnoise = int(gamma * Knoise)
@@ -280,18 +280,6 @@ class HelperTestCase(unittest.TestCase):
             self.assertAlmostEqual(
                 1. * len(l[l > 0]) / len(l[l < 0]), 1. * KEnoise / KInoise)
 
-    def test_noise_recurrent_weight_matrix(self):
-        Nnoise = 100
-        N = 200
-        epsilon = 0.2
-        W = bhlp.create_noise_recurrent_weight_matrix(
-            N, Nnoise, epsilon)
-        self.assertGreaterEqual(1., np.max(W))
-        self.assertLessEqual(-1., np.min(W))
-        self.assertAlmostEqual(0., np.mean(W), delta=0.01)
-        for l in W:
-            self.assertEqual(len(l[l > 0]) + len(l[l < 0]), epsilon * N)
-
     def test_get_energy(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
         b = np.array([0.2, 0.2])
@@ -323,7 +311,7 @@ class HelperTestCase(unittest.TestCase):
         b = bhlp.create_multi_BM_biases(
             N, M, np.random.uniform, low=-1., high=1.)
         beta = 0.5
-        joints = bhlp.get_theo_joints(W, b, beta, M)
+        joints = bhlp.get_theo_joints_multi_bm(W, b, beta, M)
         for i in range(M):
             expected_joints = []
             states = bhlp.get_states(N)
@@ -333,6 +321,18 @@ class HelperTestCase(unittest.TestCase):
             expected_joints = 1. * \
                 np.array(expected_joints) / np.sum(expected_joints)
             nptest.assert_array_almost_equal(expected_joints, joints[i])
+
+    def test_get_conditionals_from_joints(self):
+        N = 3
+        joints = np.ones(2 ** N)
+        joints /= np.sum(joints)
+        random_vars = [1, 2]
+        values = [0, 1]
+        expected_states = np.array([[0, 0, 1], [1, 0, 1]])
+        expected_cond = np.array([0.5, 0.5])
+        cond_states, cond = bhlp.get_conditionals_from_joints(N, joints, random_vars, values)
+        nptest.assert_array_equal(expected_states, cond_states)
+        nptest.assert_array_almost_equal(expected_cond, cond)
 
     def test_get_theo_marginals(self):
         W = np.array([[0., 0.5], [0.5, 0.]])
@@ -350,7 +350,14 @@ class HelperTestCase(unittest.TestCase):
             for s in statesi:
                 p += np.exp(-1. * beta * bhlp.get_energy(W, b, s))
             expected_marginals.append(1. / Z * p)
-        marginals = bhlp.get_theo_marginals(W, b, beta)
+        rvs, marginals = bhlp.get_theo_marginals(W, b, beta)
+        nptest.assert_array_almost_equal(expected_marginals, marginals)
+        N = 3
+        joints = np.ones(2 ** N)
+        joints /= np.sum(joints)
+        expected_marginals = np.array([0.5, 0.5])
+        random_vars = [0, 2]
+        rvs, marginals = bhlp.get_marginals_from_joints(N, joints, random_vars)
         nptest.assert_array_almost_equal(expected_marginals, marginals)
 
     def test_get_variance_get_std(self):
@@ -410,9 +417,11 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_marginals(self):
         N = int(1e5)
+        steps_warmup = 1e4
         a_s = np.random.randint(0, 2, N).reshape(int(N / 2), 2)
+        a_s[:steps_warmup, :] = [0., 0.]
         expected_marginals = [0.5, 0.5]
-        marginals = bhlp.get_marginals(a_s, 0)
+        marginals = bhlp.get_marginals(a_s, steps_warmup)
         nptest.assert_array_almost_equal(
             expected_marginals, marginals, decimal=2)
 
@@ -428,18 +437,17 @@ class HelperTestCase(unittest.TestCase):
                       [0.6, 0.2, 0.1, 0.1]])
         q = np.array([[0.2, 0.3, 0.1, 0.4],
                       [0.5, 0.2, 0.2, 0.1]])
-        DKL = bhlp.get_DKL(p, q, M)
+        DKL = bhlp.get_DKL_multi_bm(p, q, M)
         for j in range(M):
             expected_DKL = np.sum([p[j, i] * np.log(p[j, i] / q[j, i])
                                    for i in range(len(p[j, :]))])
             nptest.assert_array_almost_equal(expected_DKL, DKL[j])
 
     def test_theta(self):
-        x = np.array([1., -.1, -1., .1])
-        expected_y = np.array([1., 0., 0., 1.])
+        x = np.array([1., -.1, -1., .1, 0.])
+        expected_y = np.array([1., 0., 0., 1., 1.])
         for yi, xi in zip(expected_y, x):
             self.assertAlmostEqual(yi, bhlp.theta(xi))
-        self.assertRaises(ValueError, bhlp.theta, 0.)
 
     def test_sigmoidal(self):
         x = np.random.rand(int(1e2))
@@ -527,3 +535,22 @@ class HelperTestCase(unittest.TestCase):
             J, b, b_eff, beta_eff, beta)
         nptest.assert_array_almost_equal(expected_J_eff, J_eff)
         nptest.assert_array_almost_equal(expected_b_eff, b_eff)
+
+    def test_get_isi(self):
+        N = 3
+        a_times = np.array([0.1, 0.5, 0.7, 1.5, 1.7])
+        a_s = np.array([[0, 0, 1], [1, 0, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]])
+        expected_isi = np.array([[0.5, 1.2], [0.7], [1.5]])
+        isi = bhlp.get_isi(a_times, a_s)
+        for i in xrange(N):
+            nptest.assert_array_almost_equal(expected_isi[i], isi[i])
+
+    def test_get_transition_count(self):
+        N = 3
+        a_s = np.array([[0, 0, 1], [1, 0, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]])
+        expected_counts = np.array([2, 1, 1])
+        counts = bhlp.get_transition_count(a_s)
+        nptest.assert_array_equal(expected_counts, counts)
+        expected_average_counts = 1. * np.sum(expected_counts) / N
+        average_counts = bhlp.get_transition_count(a_s, average=True)
+        self.assertAlmostEqual(expected_average_counts, average_counts)

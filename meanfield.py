@@ -12,6 +12,7 @@ PLoS Comput Biol 10(1): e1003428
 DOI: 10.1371/journal.pcbi.1003428
 """
 
+
 class BinaryMeanfield(object):
     """
     this module can calculate the stationary firing rate and mean
@@ -35,13 +36,12 @@ class BinaryMeanfield(object):
             KI = int(K - KE)
         self.K = np.array([[KE, KI],
                            [KE, KI]])
-        self.J = np.array([[w, -g*w],
-                           [w, -g*w]])
+        self.J = np.array([[w, -g * w],
+                           [w, -g * w]])
         self.b = np.array(b)
         self.C = np.array([[0., 0.],
                            [0., 0.]])
         self.mu = np.array([0., 0.])
-
 
     def get_mu_meanfield(self, mu0, C=None):
         """
@@ -51,12 +51,12 @@ class BinaryMeanfield(object):
         if C is None:
             C = np.array([[0., 0.],
                           [0., 0.]])
+
         def f(mu):
             h_mu = self.get_mu_input(mu)
             h_sigma = self.get_sigma_input(mu, C)
-            return mu - 0.5*scsp.erfc((-self.b-h_mu)/(np.sqrt(2.)*h_sigma))
+            return mu - 0.5 * scsp.erfc((-self.b - h_mu) / (np.sqrt(2.) * h_sigma))
         return scop.fsolve(f, mu0)
-
 
     def get_mu_input(self, mu):
         """
@@ -65,9 +65,8 @@ class BinaryMeanfield(object):
         """
         mu = np.array(mu)
         if np.shape(mu) != (2,):
-            raise ValueError, 'Mean activity needs to be given for both populations.'
-        return np.dot(self.K*self.J, mu)
-
+            raise ValueError('Mean activity needs to be given for both populations.')
+        return np.dot(self.K * self.J, mu)
 
     def get_sigma_input(self, mu, C=None):
         """
@@ -78,7 +77,7 @@ class BinaryMeanfield(object):
         """
         mu = np.array(mu)
         if np.shape(mu) != (2,):
-            raise ValueError, 'Mean activity needs to be given for both populations.'
+            raise ValueError('Mean activity needs to be given for both populations.')
         if C is None:
             C = np.array([[0., 0.],
                           [0., 0.]])
