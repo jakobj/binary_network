@@ -27,37 +27,40 @@ class HelperRegressionTestCase(unittest.TestCase):
             nptest.assert_array_almost_equal(expected_joints[i], joints[i])
         expected_marginals = np.array([[0.3, 0.3],
                                        [0.5, 0.5]])
-        marginals = bhlp.get_marginals(a_s, 0., M)
+        marginals = bhlp.get_marginals_multi_bm(a_s, 0., M)
         for i in range(M):
             nptest.assert_array_almost_equal(expected_marginals[i], marginals[i])
 
-    def test_normalized_density_DKL(self):
+    def test_normalized_positive_density_DKL(self):
         p = np.array([0.4, 0.1, 0.3, 0.2])
         q = np.array([0.5, 0.1, 0.2, 0.2])
-        bhlp.get_DKL(p, q)
+        expected_dkl = np.sum([p[i] * np.log(p[i] / q[i]) for i in xrange(4)])
+        dkl = bhlp.get_DKL(p, q)
+        self.assertEqual(expected_dkl, dkl)
         q = np.array([0.7, 0.1, 0.3, 0.2])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q)
+        self.assertRaises(AssertionError, bhlp.get_DKL, p, q)
         q = np.array([-0.6, 0.8, 0.4, 0.4])
-        self.assertTrue(bhlp.get_DKL(p, q) is np.nan)
+        self.assertRaises(AssertionError, bhlp.get_DKL, p, q)
         q = np.array([0., 0.5, 0.1, 0.4])
-        self.assertTrue(bhlp.get_DKL(p, q) is np.nan)
+        self.assertRaises(AssertionError, bhlp.get_DKL, p, q)
         M = 2
         p = np.array([[0.4, 0.1, 0.3, 0.2],
                       [0.05, 0.5, 0.4, 0.05]])
         q = np.array([[0.5, 0.2, 0.2, 0.1],
                       [0.1, 0.5, 0.3, 0.1]])
-        bhlp.get_DKL(p, q, M=2)
+        expected_dkl = [np.sum([p[j, i] * np.log(p[j, i] / q[j, i]) for i in xrange(4)]) for j in xrange(2)]
+        dkl = bhlp.get_DKL_multi_bm(p, q, M)
+        nptest.assert_array_almost_equal(expected_dkl, dkl)
+        bhlp.get_DKL_multi_bm(p, q, M=2)
         q = np.array([[0.5, 0.2, 0.2, 0.1],
                       [0.8, 0.5, 0.3, 0.1]])
-        self.assertRaises(ValueError, bhlp.get_DKL, p, q, M)
+        self.assertRaises(AssertionError, bhlp.get_DKL_multi_bm, p, q, M)
         q = np.array([[0.5, 0.2, 0.2, 0.1],
                       [-0.1, 0.6, 0.4, 0.1]])
-        self.assertFalse(bhlp.get_DKL(p, q, M)[0] is np.nan)
-        self.assertTrue(bhlp.get_DKL(p, q, M)[1] is np.nan)
+        self.assertRaises(AssertionError, bhlp.get_DKL_multi_bm, p, q, M)
         q = np.array([[0., 0.2, 0.2, 0.6],
                       [0.1, 0.5, 0.3, 0.1]])
-        self.assertTrue(bhlp.get_DKL(p, q, M)[0] is np.nan)
-        self.assertFalse(bhlp.get_DKL(p, q, M)[1] is np.nan)
+        self.assertRaises(AssertionError, bhlp.get_DKL_multi_bm, p, q, M)
 
     def test_initial_state(self):
         N = 4

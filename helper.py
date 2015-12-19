@@ -359,7 +359,7 @@ def get_theo_marginals(W, b, beta):
     return get_marginals_from_joints(N, joints, rvs)
 
 
-def get_theo_mean_and_covariances(W, b, beta):
+def get_theo_rates_and_covariances(W, b, beta):
     """calculate rate and covariances for Boltzmann machine from
     connectivity and biases"""
     N = len(b)
@@ -473,7 +473,7 @@ def get_marginals_multi_bm(a_s, steps_warmup, M):
     a_marginals = np.empty((M, N))
     for j in range(M):
         for i in range(N):
-            a_marginals[j, :] = get_marginals(a_s[:, j * N:(j + 1) * N])
+            a_marginals[j, :] = get_marginals(a_s[:, j * N:(j + 1) * N], steps_warmup)
     if M == 1:
         return a_marginals[0]
     else:
@@ -495,10 +495,10 @@ def get_DKL(p, q):
     """returns the Kullback-Leibler divergence of distributions p and q
 
     """
-    assert(np.sum(p) - 1. < 1e-12), 'Joint densities must be normalized.'
-    assert(np.sum(q) - 1. < 1e-12), 'Joint densities must be normalized.'
-    assert(np.all(p >= 0.)), 'Joint densities must be normalized.'
-    assert(np.all(q >= 0.)), 'Joint densities must be normalized.'
+    assert(np.sum(p) - 1. < 1e-12), 'Distributions must be normalized.'
+    assert(np.sum(q) - 1. < 1e-12), 'Distributions must be normalized.'
+    assert(np.all(p > 0.)), 'Invalid values in distribution.'
+    assert(np.all(q > 0.)), 'Invalid values in distribution.'
 
     return np.sum(p * np.log(p / q))
 

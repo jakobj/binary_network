@@ -242,8 +242,7 @@ class GinzburgUnitMeanfieldTestCase(unittest.TestCase):
 
     def test_m_corr_iter(self):
         lamb = 0.5
-        # TODO rename function to get_theo_rates_covariances
-        expected_rates, expected_cov = bhlp.get_theo_covariances(
+        expected_rates, expected_cov = bhlp.get_theo_rates_and_covariances(
             self.J, self.b, self.beta)
         rates, cov = self.mf_net.get_m_corr_iter(
             np.ones(self.N) * self.mu_target, lamb)
