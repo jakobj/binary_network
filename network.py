@@ -106,22 +106,42 @@ def simulate_eve(W, b, tau, sinit, time, rNrec, l_N, l_F, Nrec_ui=0, beta=1.):
         return a_steps, a_s
 
 
-def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
+def simulate_eve_sparse(W, b, tau, s_init, time, rNrec, l_N, l_F, beta=1.):
+    """
+    simulate a network of binary neurons
+    (event driven, sparse recording of states)
+    W: connectivity matrix
+    b: bias vector
+    tau: mean update interval of units
+    sinit: initial state
+    time: simulation duration
+    rNrec: list definig start and end unit for recording states
+    l_N: list defining range of activation functions in l_F
+    l_F: list of activation function for units in range l_N
+    beta: inverse temperature
+    """
+    assert(len(l_N) == len(l_F))
     Nrec = rNrec[1] - rNrec[0]
     assert(Nrec > 0)
     N = len(b)
-    print '[binary_network] Simulating %d nodes.' % (N)
+    s = s_init.copy()
     maxsteps = int(np.ceil(1. * N * time / tau))
-    s = sinit.copy()
-    step = 1
-    maxrelsteps = int(np.ceil(1.3 * Nrec * time / tau))
-    relstep = 0
-    a_s = np.empty((maxrelsteps, 2), dtype=int)
-    a_steps = np.zeros(maxrelsteps)
+
+    # set up recording arrays
+    mean_recsteps = Nrec * time / tau
+    max_recsteps = int(np.ceil(mean_recsteps + np.sqrt(mean_recsteps)))  # Poisson process, mean + std
+    a_s = np.empty(max_recsteps, dtype=int)
+    a_times = np.zeros(max_recsteps)
+    recstep = 0
+
+    # choose initial update times
     updates = list(zip(np.random.exponential(tau, N),
                        np.random.permutation(np.arange(0, N, dtype=int))))
     hq.heapify(updates)
-    while step < maxsteps:
+
+    # simulation loop
+    print '[binary_network] Simulating %d nodes.' % (N)
+    for _ in xrange(maxsteps):
         time, idx = hq.heappop(updates)
         idF = 0
         for Ni in l_N:
@@ -132,56 +152,12 @@ def simulate_eve_sparse(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
         ui = np.dot(W[idx, :], s) + b[idx]
         s[idx] = l_F[idF](ui, beta)
         if idx >= rNrec[0] and idx < rNrec[1]:
-            a_s[relstep, :] = [idx, s[idx]]
-            a_steps[relstep] = time
-            relstep += 1
+            a_s[recstep] = bhlp.state_array_to_int(s[rNrec[0]:rNrec[1]])
+            a_times[recstep] = time
+            recstep += 1
         hq.heappush(updates, (time + np.random.exponential(tau), idx))
-        step += 1
-    maxpos = np.where(a_steps > 0.)[0][-1]
-    a_s = a_s[:maxpos, :]
-    a_steps = a_steps[:maxpos]
-    return sinit[rNrec[0]:rNrec[1]], a_steps, a_s
 
-
-
-
-def simulate_eve_sparse_fixed_order(W, b, tau, sinit, time, rNrec, l_N, l_F, beta=1.):
-    Nrec = rNrec[1] - rNrec[0]
-    assert(Nrec > 0)
-    N = len(b)
-    print '[binary_network] Simulating %d nodes.' % (N)
-    maxsteps = int(np.ceil(1. * N * time / tau))
-    s = sinit.copy()
-    step = 1
-    maxrelsteps = int(np.ceil(1.3 * Nrec * time / tau))
-    relstep = 0
-    a_s = np.empty((maxrelsteps, 2), dtype=int)
-    a_steps = np.zeros(maxrelsteps)
-    updates = list(zip(np.random.exponential(tau, N),
-                       np.random.permutation(np.arange(0, N, dtype=int))))
-    hq.heapify(updates)
-    while step < maxsteps:
-        time, idx = hq.heappop(updates)
-        idF = 0
-        for Ni in l_N:
-            if idx < Ni:
-                break
-            else:
-                idF += 1
-        ui = np.dot(W[idx, :], s) + b[idx]
-        s[idx] = l_F[idF](ui, beta)
-        if idx >= rNrec[0] and idx < rNrec[1]:
-            a_s[relstep, :] = [idx, s[idx]]
-            a_steps[relstep] = time
-            relstep += 1
-        # since we want to keep the order fixed, we just add the time
-        # constant to the current update time
-        hq.heappush(updates, (time + tau, idx))
-        step += 1
-    maxpos = np.where(a_steps > 0.)[0][-1]
-    a_s = a_s[:maxpos, :]
-    a_steps = a_steps[:maxpos]
-    return sinit[rNrec[0]:rNrec[1]], a_steps, a_s
+    return a_times[:recstep], a_s[:recstep]
 
 
 def simulate_eve_sparse_stim(W, b, tau, sinit, time, rNrec, l_N, l_F, l_pattern, beta=1.):

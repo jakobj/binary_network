@@ -11,7 +11,45 @@ np.random.seed(13456)
 
 class HelperTestCase(unittest.TestCase):
 
-    def test_binomial_outdegree(self):
+    def test_get_states(self):
+        N = 2
+        expected_states = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        states = bhlp.get_states(N)
+        nptest.assert_array_equal(expected_states, states)
+
+    def test_get_states_as_strings(self):
+        N = 2
+        expected_states = np.array(['00', '01', '10', '11'])
+        states = bhlp.get_states_as_strings(N)
+        nptest.assert_array_equal(expected_states, states)
+
+    def test_state_array_to_string(self):
+        s = np.array([0, 0, 1])
+        expected_s_string = '001'
+        s_string = bhlp.state_array_to_string(s)
+        self.assertEqual(expected_s_string, s_string)
+
+    def test_state_array_to_int(self):
+        s = np.array([1, 0, 1])
+        expected_s_int = s[0] * 2 ** 2 + s[1] * 2 ** 1 + s[2] * 2 ** 0
+        s_int = bhlp.state_array_to_int(s)
+        self.assertEqual(expected_s_int, s_int)
+
+    def test_state_string_from_int(self):
+        s_int = 4
+        N = 5
+        expected_s_string = '00100'
+        s_string = bhlp.state_string_from_int(s_int, N)
+        self.assertEqual(expected_s_string, s_string)
+
+    def test_state_array_from_int(self):
+        s_int = 5
+        N = 4
+        expected_s = np.array([0, 1, 0, 1])
+        s = bhlp.state_array_from_int(s_int, N)
+        nptest.assert_array_equal(expected_s, s)
+
+    def test_outdegree_distribution(self):
         M = 200
         N = 2000
         gamma = 0.8
@@ -315,12 +353,6 @@ class HelperTestCase(unittest.TestCase):
         marginals = bhlp.get_theo_marginals(W, b, beta)
         nptest.assert_array_almost_equal(expected_marginals, marginals)
 
-    def test_get_states(self):
-        N = 2
-        expected_states = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-        states = bhlp.get_states(N)
-        nptest.assert_array_equal(expected_states, states)
-
     def test_get_variance_get_std(self):
         mu = 0.2
         expected_variance = mu * (1. - mu)
@@ -350,38 +382,31 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_joints_sparse(self):
         N = 5
-        steps = 4e4
+        steps = 5e4
         steps_warmup = 1e3
-        a_s = np.vstack([np.random.randint(0, N, steps),
-                         np.random.randint(0, 2, steps)]).T
-        a_s[:steps_warmup, 1] = 0
+        a_s = np.random.randint(0, 2 ** N, steps)
+        a_s[:steps_warmup] = 0
         expected_joints = np.ones(2 ** N) * 1. / (2 ** N)
-        joints = bhlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
+        joints = bhlp.get_joints_sparse(a_s, N, steps_warmup)
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
         M = 3
-        a_s = np.vstack([np.random.randint(0, M * N, steps),
-                         np.random.randint(0, 2, steps)]).T
-        a_s[:steps_warmup, 1] = 0
-        joints = bhlp.get_joints_sparse(np.zeros(M * N), a_s, steps_warmup, M)
+        a_s = np.random.randint(0, 2 ** (N * M), steps)
+        a_s[:steps_warmup] = 0
+        joints = bhlp.get_joints_sparse_multi_bm(a_s, N, M, steps_warmup)
         expected_sum = np.ones(M)
         nptest.assert_array_almost_equal(expected_sum, np.sum(joints, axis=1))
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
-        a_s = np.vstack([np.random.randint(0, N, steps),
-                         np.random.randint(0, 2, steps)]).T
-        a_s[:steps_warmup, 1] = 0
-        a_s[np.where(a_s[:, 0] == 4), 1] = 0
+        # select only those states where the second most neuron is 0
+        a_s = np.random.permutation(np.array(range(0, 2 ** N, 2) * int(steps)))
         expected_joints = 2. * np.ones(2 ** N) * 1. / (2 ** N)
         expected_joints[1::2] = 0.
-        joints = bhlp.get_joints_sparse(np.zeros(N), a_s, steps_warmup)
+        joints = bhlp.get_joints_sparse(a_s, N, steps_warmup)
         nptest.assert_array_equal(np.zeros(2 ** N / 2), joints[1::2])
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
-        joints = bhlp.get_joints_sparse(
-            np.zeros(N), a_s, steps_warmup, prior='uniform')
-        nptest.assert_array_less(np.zeros(2 ** N), joints)
 
     def test_get_marginals(self):
         N = int(1e5)

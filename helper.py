@@ -6,13 +6,37 @@ import scipy.special
 import scipy.stats
 
 
-# def binomial_outdegree_multapses(M, K, N, m):
-#     """probability to find a source with m outputs for choosing for M
-#     neurons K sources from a pool of N neurons, with allowing a source
-#     to be chosen more than once for a single target
+def get_states(N):
+    """return all possible states as arrays for N binary units"""
+    return np.array([np.array(x) for x in itertools.product([0, 1], repeat=N)])
 
-#     """
-#     return scipy.stats.binom.pmf(m, M * K, 1. / N, 0)
+
+def get_states_as_strings(N):
+    """returns all possible states as strings for N binary units"""
+    return np.array([state_array_to_string(s) for s in get_states(N)])
+
+
+def state_array_to_string(s):
+    return ''.join([str(si) for si in s])
+
+
+def state_array_to_int(s):
+    """translates a state s into an integer by interpreting the state as a
+    binary represenation"""
+    return int(state_array_to_string(s), 2)
+
+
+def state_string_from_int(i, N):
+    """translates an integer i into a state string by using the binary
+    representation of the integer"""
+    return bin(i)[2:].zfill(N)
+
+
+def state_array_from_int(i, N):
+    """translates an integer i into a state by using the binary
+    representation of the integer"""
+    return np.array([int(si) for si in state_string_from_int(i, N)])
+
 
 def random_initial_condition(N):
     return np.random.randint(0, 2, N)
@@ -394,45 +418,24 @@ def get_steps_warmup(rNrec, Twarmup, tau):
     return int(np.ceil(1. * Nrec * Twarmup / tau))
 
 
-def get_joints_sparse(sinit, a_s, steps_warmup, M=1, prior=None):
-    steps_tot = len(a_s[steps_warmup:])
-    N = len(sinit) / M
-    a_joints = np.empty((M, 2 ** N))
-    possible_states = get_states(N)
-    states = {}
-    for i in range(M):
-        cstate = sinit.copy()
-        if prior is None:
-            for s in possible_states:
-                states[tuple(s)] = 0.
-        elif prior == 'uniform':
-            for s in possible_states:
-                states[tuple(s)] = 1.
-            steps_tot += len(possible_states)
-        for step, (idx, sidx) in enumerate(a_s):
-            cstate[idx] = sidx
-            if step >= steps_warmup:
-                states[tuple(cstate[i * N:(i + 1) * N])] += 1
-        states_sorted = np.array([it[1] for it in sorted(states.items())])
-        a_joints[i, :] = 1. * states_sorted / steps_tot
-        assert((np.sum(a_joints[i, :]) - 1.) < 1e-12)
-    if M == 1:
-        return a_joints[0]
-    else:
-        return a_joints
+def get_joints_sparse(a_s, N, steps_warmup, prior=None):
+    if prior is None:
+        pass
+    elif prior == 'uniform':
+        for s in get_states(N):
+            a_s = np.append(a_s, state_array_to_int(s))
+    hist, bins = np.histogram(a_s[steps_warmup:], bins=np.arange(0, 2 ** N + 1), density=True)
+    return hist
 
 
-def get_all_states_from_sparse(sinit, a_s, steps_warmup):
-    steps_tot = len(a_s)
-    N = len(sinit)
-    a_s_full = np.empty((steps_tot, N))
-    cstate = sinit.copy()
-    for step, (idx, sidx) in enumerate(a_s):
-        cstate[idx] = sidx
-        if step >= steps_warmup:
-            a_s_full[step] = cstate
-    a_s_full = a_s_full[steps_warmup:]
-    return a_s_full
+def get_joints_sparse_multi_bm(a_s, N, M, steps_warmup, prior=None):
+    a_s_full = get_all_states_from_sparse(a_s, N * M, steps_warmup)
+    joints = get_joints(a_s_full, steps_warmup, M=M, prior=prior)
+    return joints
+
+
+def get_all_states_from_sparse(a_s, N, steps_warmup):
+    return np.array([state_array_from_int(s, N) for s in a_s[steps_warmup:]])
 
 
 def get_marginals(a_s, steps_warmup, M=1):
