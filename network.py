@@ -106,7 +106,7 @@ def simulate_eve(W, b, tau, sinit, time, rNrec, l_N, l_F, Nrec_ui=0, beta=1.):
         return a_steps, a_s
 
 
-def simulate_eve_sparse(W, b, tau, s_init, time, rNrec, l_N, l_F, beta=1.):
+def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1.):
     """
     simulate a network of binary neurons
     (event driven, sparse recording of states)
@@ -122,14 +122,14 @@ def simulate_eve_sparse(W, b, tau, s_init, time, rNrec, l_N, l_F, beta=1.):
     """
     assert(len(l_N) == len(l_F))
     Nrec = rNrec[1] - rNrec[0]
-    assert(Nrec > 0)
+    assert(Nrec >= 0)
     N = len(b)
     s = s_init.copy()
-    maxsteps = int(np.ceil(1. * N * time / tau))
+    maxsteps = int(np.ceil(1. * N * Tmax / tau))
 
     # set up recording arrays
-    mean_recsteps = Nrec * time / tau
-    max_recsteps = int(np.ceil(mean_recsteps + np.sqrt(mean_recsteps)))  # Poisson process, mean + std
+    mean_recsteps = Nrec * Tmax / tau
+    max_recsteps = int(np.ceil(mean_recsteps + 3 * np.sqrt(mean_recsteps)))  # Poisson process, mean + 3 * std
     a_s = np.empty(max_recsteps, dtype=int)
     a_times = np.zeros(max_recsteps)
     recstep = 0
