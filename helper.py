@@ -606,13 +606,13 @@ def bin_binary_data(times, a_states, tbin, tmin, tmax):
     return times_bin, st
 
 
-def autocorrf(times_bin, st, tmax):
+def autocorrf(st, tbin, tmax):
     """returns the population averaged autocorrelation function of the
     binned signal st
 
     """
-    times = np.hstack([-1. * times_bin[1:][::-1], 0, times_bin[1::]])
     Nbins = len(st[0])
+    times = np.arange(-Nbins * tbin + tbin, Nbins * tbin, tbin)
     offset_edge = np.hstack(
         [np.arange(1, Nbins), Nbins, np.arange(1, Nbins)[::-1]])
     autof = np.mean(

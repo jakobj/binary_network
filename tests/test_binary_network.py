@@ -143,16 +143,17 @@ class NetworkTestCase(unittest.TestCase):
 
     def test_auto_corr(self):
         N = 58
-        sinit = np.zeros(N)
+        sinit = hlp.random_initial_condition(N)
         tau = 10.
-        Nrec = N
-        time = 3.5e3
+        rNrec = [0, N]
+        time = 5e3
+        Twarmup = 1e2
+        steps_warmup = hlp.get_steps_warmup(rNrec, Twarmup, tau)
         mu_target = 0.4
-        tbin = .6
-        tmax = 600.
+        tbin = .8
+        tmax_lag = 600.
         expected_var = mu_target * (1. - mu_target)
-        expected_timelag = np.hstack(
-            [-1. * np.arange(tbin, tmax + tbin, tbin)[::-1], 0, np.arange(tbin, tmax + tbin, tbin)])
+        expected_timelag = np.arange(-tmax_lag, tmax_lag, tbin)
         expected_autof = expected_var * \
             np.exp(-1. * abs(expected_timelag) / tau)
 
@@ -160,19 +161,21 @@ class NetworkTestCase(unittest.TestCase):
         w = 0.2
         g = 8.
         gamma = 0.
-        epsilon = 0.2
+        epsilon = 0.1
         W_brn = hlp.create_BRN_weight_matrix(N, w, g, epsilon, gamma)
         b_brn = -1. * \
             hlp.get_mu_input(epsilon, N, gamma, g, w, mu_target) * \
             np.ones(N) - 1. * w / 2
-        a_times_brn, a_s_brn = bnet.simulate_eve(
-            W_brn, b_brn, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Ftheta])
+        a_times_brn, a_s_brn = bnet.simulate_eve_sparse(
+            W_brn, b_brn, tau, sinit, time, rNrec, [N], [hlp.Ftheta])
+        a_s_brn_full = hlp.get_all_states_from_sparse(a_s_brn, N, steps_warmup)
+        a_times_brn = hlp.adjust_time_slices(a_times_brn, steps_warmup)
         self.assertAlmostEqual(
-            mu_target, np.mean(a_s_brn), delta=0.1 * np.mean(a_s_brn))
+            mu_target, np.mean(a_s_brn_full), delta=0.1 * np.mean(a_s_brn_full))
         times_bin_brn, st_brn = hlp.bin_binary_data(
-            a_times_brn, a_s_brn, tbin, 0., time)
+            a_times_brn, a_s_brn_full, tbin, Twarmup, time)
         timelag_brn, autof_brn = hlp.autocorrf(
-            times_bin_brn, st_brn[:30], tmax)
+            st_brn, tbin, tmax_lag)
         nptest.assert_array_almost_equal(expected_timelag, timelag_brn)
         self.assertLess(np.sum(autof_brn - expected_autof),
                         0.5 * np.sum(autof_brn))
@@ -180,16 +183,18 @@ class NetworkTestCase(unittest.TestCase):
         # Poisson (independent)
         W = np.zeros((N, N))
         b = np.ones(N) * hlp.sigmainv(mu_target)
-        a_times, a_s = bnet.simulate_eve(
-            W, b, tau, sinit.copy(), time, [0, Nrec], [N], [hlp.Fsigma])
+        a_times, a_s = bnet.simulate_eve_sparse(
+            W, b, tau, sinit.copy(), time, rNrec, [N], [hlp.Fsigma])
+        a_s_full = hlp.get_all_states_from_sparse(a_s, N, steps_warmup)
+        a_times = hlp.adjust_time_slices(a_times, steps_warmup)
         self.assertAlmostEqual(
-            mu_target, np.mean(a_s), delta=0.1 * np.mean(a_s))
-        times_bin, st = hlp.bin_binary_data(a_times, a_s, tbin, 0., time)
-        timelag, autof = hlp.autocorrf(times_bin, st[:30], tmax)
+            mu_target, np.mean(a_s_full), delta=0.1 * np.mean(a_s_full))
+        times_bin, st = hlp.bin_binary_data(a_times, a_s_full, tbin, 0., time)
+        timelag, autof = hlp.autocorrf(st, tbin, tmax_lag)
         nptest.assert_array_almost_equal(expected_timelag, timelag)
         nptest.assert_array_almost_equal(expected_autof, abs(autof), decimal=2)
         self.assertLess(np.sum(autof - expected_autof),
-                        0.5 * np.sum(autof))
+                        0.1 * np.sum(autof))
 
     def test_cross_corr(self):
         N = 60
