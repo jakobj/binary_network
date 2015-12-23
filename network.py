@@ -3,55 +3,83 @@ import numpy as np
 import heapq as hq
 
 
-def simulate(W, b, sinit, steps, Nrec, l_N, l_F, Nrec_ui=0, beta=1.):
-    record_ui = True if Nrec_ui > 0 else False
-    N = len(b)
-    s = sinit
-    step = 1
-    a_s = np.empty((int(steps), Nrec))
-    a_s[0] = s[:Nrec]
-    if record_ui:
-        maxrelsteps_ui = int(np.ceil(1.1 * Nrec_ui * steps))
-        relstep_ui = 1
-        a_rec_ui = np.empty((maxrelsteps_ui, Nrec_ui))
-        a_steps_ui = np.zeros(maxrelsteps_ui)
-        a_rec_ui[0] = np.dot(W[:Nrec_ui, :], s) + b[:Nrec_ui]
-        a_steps_ui[0] = 0.
+def simulate(W, b, s_init, steps, rNrec, l_N, l_F, beta=1., rNrec_u=[0, 0]):
+    """
+    simulate a network of binary neurons (step driven)
+    W: connectivity matrix
+    b: bias vector
+    s_init: initial state
+    steps: simulation steps
+    rNrec: list defining start (incl) and end unit (excl) for recording states
+    l_N: list defining range of activation functions in l_F
+    l_F: list of activation function for units in range l_N
+    beta: inverse temperature
+    rNrec_u: list defining start (incl) and end unit (excl) for recording membrane potentials
+    """
+    assert(len(l_N) == len(l_F))
+    Nrec = rNrec[1] - rNrec[0]
+    assert(Nrec >= 0)
+    Nrec_u = rNrec_u[1] - rNrec_u[0]
+    assert(Nrec_u >= 0)
 
-    while step < steps:
+    N = len(b)
+    s = s_init.copy()
+
+    # set up recording array for states
+    mean_recsteps = Nrec * steps / N
+    max_recsteps = int(np.ceil(mean_recsteps + 3 * np.sqrt(mean_recsteps)))  # Poisson process, mean + 3 * std
+    a_s = np.empty((max_recsteps, Nrec), dtype=int)
+    a_steps = np.empty(max_recsteps)
+    recstep = 0
+    # set up recording arrays for membrane potential
+    mean_recsteps_u = Nrec_u * steps / N
+    max_recsteps_u = int(np.ceil(mean_recsteps_u + 3 * np.sqrt(mean_recsteps_u)))  # Poisson process, mean + 3 * std
+    a_u = np.empty((max_recsteps_u, Nrec_u), dtype=int)
+    a_steps_u = np.zeros(max_recsteps_u)
+    recstep_u = 0
+
+    # build lookup tables for activation functions and recording
+    F_lut = np.empty(N, dtype=int)
+    rec_s_lut = np.zeros(N, dtype=bool)
+    rec_u_lut = np.zeros(N, dtype=bool)
+    idF = 0
+    for idx in xrange(N):
+        if idx >= l_N[idF]:
+            idF += 1
+        F_lut[idx] = idF
+        if idx >= rNrec[0] and idx < rNrec[1]:
+            rec_s_lut[idx] = True
+        if idx >= rNrec_u[0] and idx < rNrec[1]:
+            rec_u_lut[idx] = True
+
+    # simulation loop
+    print '[binary_network] Simulating %d nodes.' % (N)
+    for step in xrange(steps):
         idx = np.random.randint(0, N)
-        idF = 0
-        for Ni in l_N:
-            if idx < Ni:
-                break
-            else:
-                idF += 1
         ui = np.dot(W[idx, :], s) + b[idx]
-        s[idx] = l_F[idF](ui, beta)
-        if record_ui and idx < Nrec_ui:
-            a_rec_ui[relstep_ui] = np.dot(W[:Nrec_ui, :], s) + b[:Nrec_ui]
-            a_steps_ui[relstep_ui] = step
-            relstep_ui += 1
-        a_s[step] = s[:Nrec]
-        step += 1
-    a_steps = np.arange(steps)
-    if record_ui:
-        maxpos_ui = np.where(a_steps_ui > 0.)[0][-1]
-        a_rec_ui = a_rec_ui[:maxpos_ui, :]
-        a_steps_ui = a_steps_ui[:maxpos_ui]
-        return a_steps, a_s, a_steps_ui, a_rec_ui
+        if Nrec_u > 0 and rec_u_lut[idx]:
+            a_u[recstep_u] = np.dot(W[rNrec_u[0]:rNrec_u[1], :], s) + b[rNrec_u[0]:rNrec_u[1]]
+            a_steps_u[recstep_u] = step
+            recstep_u += 1
+        s[idx] = l_F[F_lut[idx]](ui, beta)
+        if Nrec > 0 and rec_s_lut[idx]:
+            a_s[recstep] = s[rNrec[0]:rNrec[1]]
+            a_steps[recstep] = step
+            recstep += 1
+
+    if Nrec_u == 0:
+        return a_steps[:recstep], a_s[:recstep]
     else:
-        return a_steps, a_s
+        return a_steps[:recstep], a_s[:recstep], a_steps_u[:recstep_u], a_u[:recstep_u]
 
 
 def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1., rNrec_u=[0, 0]):
     """
-    simulate a network of binary neurons
-    (event driven, sparse recording of states)
+    simulate a network of binary neurons (event driven, sparse recording of states)
     W: connectivity matrix
     b: bias vector
     tau: mean update interval of units
-    sinit: initial state
+    s_init: initial state
     time: simulation duration
     rNrec: list defining start (incl) and end unit (excl) for recording states
     l_N: list defining range of activation functions in l_F
@@ -112,7 +140,6 @@ def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1., rNrec
             recstep_u += 1
         s[idx] = l_F[F_lut[idx]](ui, beta)
         if Nrec > 0 and rec_s_lut[idx]:
-            # a_s[recstep] = bhlp.state_array_to_int(s[rNrec[0]:rNrec[1]])
             a_s[recstep] = (idx, s[idx])
             a_times[recstep] = time
             recstep += 1
