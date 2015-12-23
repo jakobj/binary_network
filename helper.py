@@ -17,7 +17,7 @@ def get_states_as_strings(N):
 
 
 def state_array_to_string(s):
-    return ''.join([str(si) for si in s])
+    return ''.join(np.array(s, dtype=str))
 
 
 def state_array_to_int(s):
