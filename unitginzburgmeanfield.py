@@ -1,10 +1,6 @@
 # global imports
 import numpy as np
 
-"""""""""""
-DISCLAIMER: SEVERELY OUTDATED DOCSTRINGS
-"""""""""""
-
 """
 ref Helias14:
 Helias, Tetzlaff, Diesmann (2014) The Correlation Structure of
@@ -45,6 +41,7 @@ class BinaryMeanfield(object):
         h_mu = self.get_mu_input(mu)
         h_mu += self.b
         h_sigma2 = self.get_sigma2_input(C)
+        
         # Taylor expansion
         # of activation function under the integral after substitution
         eb = np.exp(self.beta * h_mu)
