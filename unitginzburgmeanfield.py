@@ -1,5 +1,5 @@
+# global imports
 import numpy as np
-# import scipy.integrate as scint
 
 """""""""""
 DISCLAIMER: SEVERELY OUTDATED DOCSTRINGS
@@ -12,6 +12,7 @@ Local Neuronal Networks Intrinsically Results from Recurrent Dynamics
 PLoS Comput Biol 10(1): e1003428
 DOI: 10.1371/journal.pcbi.1003428
 """
+
 
 class BinaryMeanfield(object):
     """
@@ -28,7 +29,6 @@ class BinaryMeanfield(object):
         self.beta = beta
         self.mu = np.zeros(self.N)
 
-
     def get_mu_meanfield(self, mu, C):
         """
         Self-consistent rate
@@ -39,11 +39,11 @@ class BinaryMeanfield(object):
         h_sigma2 = self.get_sigma2_input(C)
         # Taylor expansion of 1/(1 + exp(-beta*x)) around h_mu
         eb = np.exp(self.beta * h_mu)
-        C0 = eb/(eb + 1.)
-        C2 = (eb**2 - eb) / (2. * (eb + 1.)**3) * self.beta**2
-        C4 = (eb**4 - 11. * eb**3 + 11. * eb**2 - eb) \
-             / (24. * (eb + 1.)**5) * self.beta**4
-        mu = C0 - C2 * h_sigma2 - C4 * 3. * h_sigma2**2
+        C0 = eb / (eb + 1.)
+        C2 = (eb ** 2 - eb) / (2. * (eb + 1.) ** 3) * self.beta ** 2
+        C4 = (eb ** 4 - 11. * eb ** 3 + 11. * eb ** 2 - eb) \
+            / (24. * (eb + 1.) ** 5) * self.beta ** 4
+        mu = C0 - C2 * h_sigma2 - C4 * 3. * h_sigma2 ** 2
         # mu = np.empty(self.N)
         # for i in xrange(self.N):
         #     # Numerical integration of activation function
@@ -51,12 +51,11 @@ class BinaryMeanfield(object):
         #         return 1./(1. + np.exp(-self.beta * x)) * 1./np.sqrt(2. * np.pi * h_sigma2[i]) * np.exp(-(x - h_mu[i])**2 / (2. * h_sigma2[i]))
         #     mu[i], error = scint.quad(f, -50., 50.)
         #     assert(error < 1e-7), 'Integration error while determining mean activity.'
-            # Sommerfeld expansion
-            # WARNING: seems to fail due to size of h_sigma2
-            # mu[i] = 0.5 * (1. + scsp.erf(h_mu[i]/np.sqrt(h_sigma2[i]))) \
-            #         - 1./self.beta**2 * 1./np.sqrt(np.pi * h_sigma2[i]) * np.pi**2 / 6. * 2.* h_mu[i]/h_sigma2[i] * np.exp(-h_mu[i]**2 / h_sigma2[i])
+        # Sommerfeld expansion
+        # WARNING: seems to fail due to size of h_sigma2
+        # mu[i] = 0.5 * (1. + scsp.erf(h_mu[i]/np.sqrt(h_sigma2[i]))) \
+        #         - 1./self.beta**2 * 1./np.sqrt(np.pi * h_sigma2[i]) * np.pi**2 / 6. * 2.* h_mu[i]/h_sigma2[i] * np.exp(-h_mu[i]**2 / h_sigma2[i])
         return mu
-
 
     def get_mu_input(self, mu):
         """
@@ -64,7 +63,6 @@ class BinaryMeanfield(object):
         Formula (4) in Helias14
         """
         return np.dot(self.J, mu)
-
 
     def get_sigma2_input(self, C):
         """
@@ -78,7 +76,6 @@ class BinaryMeanfield(object):
         assert(np.all(sigma2_input >= 0.))
         return sigma2_input
 
-
     def get_suszeptibility(self, mu, C):
         """
         Suszeptibility (i.e., derivative of Gain function) for Gaussian
@@ -90,11 +87,12 @@ class BinaryMeanfield(object):
         h_sigma2 = self.get_sigma2_input(C)
         # Taylor expansion of beta/(1+exp(-beta*x))^2*exp(-beta*x) around h_mu
         eb = np.exp(self.beta * h_mu)
-        C0 = eb / (eb + 1)**2
-        C2 = (eb**3 - 4. * eb**2 + eb) / (2. * (eb + 1.)**4) * self.beta**2
-        C4 = (eb**5 - 26 * eb**4 + 66 * eb**3 - 26 * eb**2 + eb) \
-             / (24. * (eb + 1)**6) * self.beta**4
-        S = self.beta * (C0 +  C2 * h_sigma2 + C4 * 3. * h_sigma2**2)
+        C0 = eb / (eb + 1) ** 2
+        C2 = (eb ** 3 - 4. * eb ** 2 + eb) / \
+            (2. * (eb + 1.) ** 4) * self.beta ** 2
+        C4 = (eb ** 5 - 26 * eb ** 4 + 66 * eb ** 3 - 26 * eb ** 2 + eb) \
+            / (24. * (eb + 1) ** 6) * self.beta ** 4
+        S = self.beta * (C0 + C2 * h_sigma2 + C4 * 3. * h_sigma2 ** 2)
         # S = np.empty(self.N)
         # for i in xrange(self.N):
         #     # Numerical integration of derivative of activation function
@@ -104,7 +102,6 @@ class BinaryMeanfield(object):
         #     assert(error < 1e-7), 'Integration error while determining suszeptibility.'
         return S
 
-
     def get_w_meanfield(self, mu, C):
         """
         Linearized population averaged weights
@@ -112,7 +109,6 @@ class BinaryMeanfield(object):
         """
         S = np.diag(self.get_suszeptibility(mu, C))
         return np.dot(S, self.J)
-
 
     def get_m_corr_iter(self, mu0, lamb, C=None):
         """Calculate correlations iteratively from mean rates
@@ -132,7 +128,7 @@ class BinaryMeanfield(object):
 
             W = self.get_w_meanfield(mu, C)
             WC = np.dot(W, C)
-            C_new = 0.5*WC + 0.5*WC.T
+            C_new = 0.5 * WC + 0.5 * WC.T
             for i, m_i in enumerate(mu):
                 C_new[i, i] = m_i * (1. - m_i)
             Dc = np.max(abs(C - C_new))

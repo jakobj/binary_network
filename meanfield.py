@@ -1,7 +1,9 @@
+# global imports
 import numpy as np
 import scipy.special as scsp
 import scipy.optimize as scop
 
+# local imports
 import helper as bhlp
 
 """
