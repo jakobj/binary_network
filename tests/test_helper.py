@@ -70,8 +70,7 @@ class HelperTestCase(unittest.TestCase):
         hist_out, bins_out = np.histogram(outdegree, bins_out, density=True)
 
         theo_hist_out = bhlp.outdegree_distribution(M, K, N, bins_out[:-1])
-
-        nptest.assert_array_almost_equal(theo_hist_out, hist_out, decimal=2)
+        nptest.assert_array_almost_equal(theo_hist_out, hist_out, decimal=1)
 
     def test_shared_input_distribution(self):
         M = 200
@@ -391,26 +390,38 @@ class HelperTestCase(unittest.TestCase):
         N = 5
         steps = 5e4
         steps_warmup = 1e3
-        a_s = np.random.randint(0, 2 ** N, steps)
-        a_s[:steps_warmup] = 0
+        sinit = bhlp.random_initial_condition(N)
+        a_s = np.empty((steps, 2))
+        a_s[:, 0] = np.random.randint(0, N, steps)
+        a_s[:, 1] = np.random.randint(0, 2, steps)
+        a_s[:steps_warmup] = (0, 0)
         expected_joints = np.ones(2 ** N) * 1. / (2 ** N)
-        joints = bhlp.get_joints_sparse(a_s, N, steps_warmup)
+        joints = bhlp.get_joints_sparse(sinit, a_s, steps_warmup)
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
-        M = 3
-        a_s = np.random.randint(0, 2 ** (N * M), steps)
-        a_s[:steps_warmup] = 0
-        joints = bhlp.get_joints_sparse_multi_bm(a_s, N, M, steps_warmup)
+        M = 2
+        sinit = bhlp.random_initial_condition(N * M)
+        a_s = np.empty((steps, 2))
+        a_s[:, 0] = np.random.randint(0, N * M, steps)
+        a_s[:, 1] = np.random.randint(0, 2, steps)
+        a_s[:steps_warmup] = (0, 0)
+        joints = bhlp.get_joints_sparse_multi_bm(sinit, a_s, M, steps_warmup)
         expected_sum = np.ones(M)
         nptest.assert_array_almost_equal(expected_sum, np.sum(joints, axis=1))
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
-        # select only those states where the second most neuron is 0
-        a_s = np.random.permutation(np.array(range(0, 2 ** N, 2) * int(steps)))
+        sinit = bhlp.random_initial_condition(N)
+        a_s = np.empty((steps, 2))
+        a_s[:, 0] = np.random.randint(0, N, steps)
+        a_s[:, 1] = np.random.randint(0, 2, steps)
+        # allow only those states where the last neuron is off.  this
+        # make the joint distribution non-trivial, by setting the
+        # probability of half of the states to zero.
+        a_s[a_s[:, 0] == 4, 1] = 0
         expected_joints = 2. * np.ones(2 ** N) * 1. / (2 ** N)
         expected_joints[1::2] = 0.
-        joints = bhlp.get_joints_sparse(a_s, N, steps_warmup)
+        joints = bhlp.get_joints_sparse(sinit, a_s, steps_warmup)
         nptest.assert_array_equal(np.zeros(2 ** N / 2), joints[1::2])
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
@@ -554,3 +565,19 @@ class HelperTestCase(unittest.TestCase):
         expected_average_counts = 1. * np.sum(expected_counts) / N
         average_counts = bhlp.get_transition_count(a_s, average=True)
         self.assertAlmostEqual(expected_average_counts, average_counts)
+
+    def test_bin_binary_data(self):
+        N = 2
+        tbin = 0.04
+        time = 2.
+        times = np.array([0., 0.1, 0.35, 0.8, 0.95, 1.68])
+        a_s = np.array([[0, 0], [1, 0], [1, 1], [1, 0], [0, 0], [1, 0]])
+        expected_times = np.arange(0., time + tbin, tbin)
+        expected_bin = np.empty((N, len(expected_times)))
+        for i, t in enumerate(expected_times):
+            idl = np.where(times <= t)[0]
+            expected_bin[0][i] = a_s[idl[-1], 0]
+            expected_bin[1][i] = a_s[idl[-1], 1]
+        times_bin, st = bhlp.bin_binary_data(times, a_s, tbin, 0., time)
+        nptest.assert_array_equal(expected_times, times_bin)
+        nptest.assert_array_equal(expected_bin, st)

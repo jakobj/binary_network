@@ -123,10 +123,11 @@ class MeanfieldTestCase(unittest.TestCase):
         b[:N] = -w / 2.
         b[N:] = -1. * \
             bhlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target) - w / 2.
-        sinit = np.array(np.random.randint(0, 2, N + Nnoise), dtype=np.int)
+        sinit = bhlp.random_initial_condition(N + Nnoise)
 
-        times, a_s, a_times_ui, a_ui = bnet.simulate_eve(
-            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.Ftheta], Nrec_ui=N)
+        sinit, times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
+            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.Ftheta], rNrec_u=[0, N + Nrec])
+        a_s = bhlp.get_all_states_from_sparse(sinit, a_s)
         a_ui = a_ui[200:]
         a_s = a_s[200:]
 

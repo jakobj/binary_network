@@ -46,6 +46,10 @@ def adjust_time_slices(a_time, steps_warmup):
     return a_time[steps_warmup:]
 
 
+def adjust_recorded_states(a_s, steps_warmup):
+    return a_s[steps_warmup:]
+
+
 def outdegree_distribution(M, K, N, m):
     """probability to find a source with m outputs for choosing for M
     neurons K sources from a pool of N neurons, without choosing a
@@ -441,24 +445,38 @@ def get_joints(a_s, steps_warmup, M=1, prior=None):
         return a_joints
 
 
-def get_joints_sparse(a_s, N, steps_warmup, prior=None):
+def get_joints_sparse(s_init, a_s, steps_warmup, prior=None):
     """create joint distribution of network states from recorded state
-    array. expected integer representation of network state."""
+    array. expected sparse representation of network state."""
+    N = len(s_init)
+    state_counter = {}
+    possible_states = get_states(N)
+    for s in possible_states:
+        state_counter[tuple(s)] = 0
     if prior is None:
         pass
     elif prior == 'uniform':
         # assuming a uniform prior, i.e., each state is equally
-        # likely. we add one realization of each state to the state
-        # vector. given no recorded data, this corresponds to a
+        # likely. we add one count of each state to the state
+        # counter. given no recorded data, this corresponds to a
         # uniform prior.
-        for s in get_states(N):
-            a_s = np.append(a_s, state_array_to_int(s))
-    hist, bins = np.histogram(a_s[steps_warmup:], bins=np.arange(0, 2 ** N + 1), density=True)
-    return hist
+        for s in possible_states:
+            state_counter[tuple(s)] += 1
+    else:
+        raise NotImplementedError('Unknown prior.')
+    current_state = s_init.copy()
+    for step, (idx, sidx) in enumerate(a_s):
+        current_state[idx] = sidx
+        if step >= steps_warmup:
+            state_counter[tuple(current_state)] += 1
+    hist = np.zeros(2 ** N)
+    for i, s in enumerate(possible_states):
+        hist[i] = state_counter[tuple(s)]
+    return 1. * hist / np.sum(hist)
 
 
-def get_joints_sparse_multi_bm(a_s, N, M, steps_warmup, prior=None):
-    a_s_full = get_all_states_from_sparse(a_s, N * M, steps_warmup)
+def get_joints_sparse_multi_bm(s_init, a_s, M, steps_warmup, prior=None):
+    a_s_full = get_all_states_from_sparse(s_init, a_s)
     joints = get_joints(a_s_full, steps_warmup, M=M, prior=prior)
     return joints
 
@@ -480,10 +498,16 @@ def get_marginals_multi_bm(a_s, steps_warmup, M):
         return a_marginals
 
 
-def get_all_states_from_sparse(a_s, N, steps_warmup):
-    """create array representation of list of network states from integer
+def get_all_states_from_sparse(s_init, a_s):
+    """create array representation of list of network states from sparse
     representation."""
-    return np.array([state_array_from_int(s, N) for s in a_s[steps_warmup:]])
+    N = len(s_init)
+    current_state = s_init.copy()
+    a_s_full = np.empty((len(a_s), N))
+    for step, (idx, sidx) in enumerate(a_s):
+        current_state[idx] = sidx
+        a_s_full[step] = current_state
+    return a_s_full
 
 
 def get_euclidean_distance(x, y):
@@ -622,18 +646,19 @@ def autocorrf(st, tbin, tmax):
     return times, autof
 
 
-def crosscorrf(times_bin, st, tmax):
+def crosscorrf(st, tbin, tmax):
     """returns the population averaged crosscorrelation function of the
     binned signal st
 
     """
     N = len(st)
     # compute autocorrelation of compound signal
-    times_cauto, cauto = autocorrf(times_bin, [np.sum(st, axis=0)], tmax)
+    times_cauto, cauto = autocorrf([np.sum(st, axis=0)], tbin, tmax)
     # compute marginal autocorrelations
-    times_autof, mu_autof = autocorrf(times_bin, st, tmax)
+    times_autof, mu_autof = autocorrf(st, tbin, tmax)
     # calculate cross correlation from compound and marginal autocorrelations
     mu_crossf = 1. / (N * (N - 1)) * (cauto - 1. * N * mu_autof)
+    assert(np.all(times_cauto == times_autof))
     return times_autof, mu_autof, mu_crossf
 
 

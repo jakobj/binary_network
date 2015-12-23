@@ -63,17 +63,17 @@ class HelperRegressionTestCase(unittest.TestCase):
         self.assertRaises(AssertionError, bhlp.get_DKL_multi_bm, p, q, M)
 
     def test_initial_state(self):
-        N = 4
+        N = 5
         W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
         b = bhlp.create_BM_biases(N, np.random.uniform, low=-1., high=1.)
         beta = 0.8
-        sinit = np.random.randint(0, 2, N)
-        rNrec = [0, 2]
+        sinit = bhlp.random_initial_condition(N)
+        rNrec = [1, 3]
         Tmax = 5e4
         tau = 10.
-        a_times, a_s = bnet.simulate_eve_sparse(
+        sinit_sim, a_times, a_s = bnet.simulate_eve_sparse(
             W, b, tau, sinit, Tmax, rNrec, [N], [bhlp.Fsigma], beta=beta)
-        joints = bhlp.get_joints_sparse(a_s, rNrec[1] - rNrec[0], 0)
+        nptest.assert_array_equal(np.arange(rNrec[0], rNrec[1]), np.unique(a_s[:, 0]))
+        nptest.assert_array_equal(sinit[rNrec[0]:rNrec[1]], sinit_sim)
         self.assertEqual(len(sinit), N)
-        self.assertEqual(len(bhlp.state_array_from_int(a_s[0], rNrec[1] - rNrec[0])), rNrec[1] - rNrec[0])
-        self.assertEqual(len(joints), 2 ** (rNrec[1] - rNrec[0]))
+        self.assertEqual(len(sinit_sim), rNrec[1] - rNrec[0])
