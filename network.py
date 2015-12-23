@@ -134,6 +134,17 @@ def simulate_eve_sparse(W, b, tau, s_init, time, rNrec, l_N, l_F, beta=1.):
     a_times = np.zeros(max_recsteps)
     recstep = 0
 
+    # build lookup table for activation functions and recording
+    F_lut = np.empty(N, dtype=int)
+    rec_lut = np.zeros(N, dtype=bool)
+    idF = 0
+    for idx in xrange(N):
+        if idx >= l_N[idF]:
+            idF += 1
+        F_lut[idx] = idF
+        if idx >= rNrec[0] and idx < rNrec[1]:
+            rec_lut[idx] = True
+
     # choose initial update times
     updates = list(zip(np.random.exponential(tau, N),
                        np.random.permutation(np.arange(0, N, dtype=int))))
@@ -143,15 +154,9 @@ def simulate_eve_sparse(W, b, tau, s_init, time, rNrec, l_N, l_F, beta=1.):
     print '[binary_network] Simulating %d nodes.' % (N)
     for _ in xrange(maxsteps):
         time, idx = hq.heappop(updates)
-        idF = 0
-        for Ni in l_N:
-            if idx < Ni:
-                break
-            else:
-                idF += 1
         ui = np.dot(W[idx, :], s) + b[idx]
-        s[idx] = l_F[idF](ui, beta)
-        if idx >= rNrec[0] and idx < rNrec[1]:
+        s[idx] = l_F[F_lut[idx]](ui, beta)
+        if rec_lut[idx]:
             a_s[recstep] = bhlp.state_array_to_int(s[rNrec[0]:rNrec[1]])
             a_times[recstep] = time
             recstep += 1
