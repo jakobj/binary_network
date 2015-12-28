@@ -558,7 +558,7 @@ def Fsigma(x, beta=1.):
 def Ferfc(x, beta=1.):
     """activation function from complementary error function for
     stochastic binary neurons (McCulloch-Pitts + white noise)"""
-    return (0.5 * scipy.special.erfc(-1. / beta * x) > np.random.rand())
+    return int(0.5 * scipy.special.erfc(-1. / beta * x) > np.random.rand())
 
 
 def sigmainv(y, beta=1.):
