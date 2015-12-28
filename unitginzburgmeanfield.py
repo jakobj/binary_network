@@ -124,10 +124,10 @@ class BinaryMeanfield(object):
         return np.dot(S, self.J)
 
     def get_m_corr_iter(self, mu0, lamb, C0=None):
-        """Calculate correlations iteratively from rate vector
+        """Calculate rates and correlations iteratively
         mu0: initial guess for rate vector
         lamb: slowness parameter (controls convergence speed)
-        C: initial guess for covariance matrix
+        C0: initial guess for covariance matrix
         """
         Dmu = 1e10
         Dc = 1e10
