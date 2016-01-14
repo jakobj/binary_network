@@ -107,15 +107,15 @@ def create_multi_BM_biases(N, M, distribution, **kwargs):
     return create_BM_biases(N * M, distribution, **kwargs)
 
 
-def create_BM_biases_threshold_condition(N, muJ, mu_target):
+def create_BM_biases_threshold_condition(N, mean_weight, mean_activity):
     """create biases for a Boltzmann machine, by requiring that the
     average input from other neurons in the BM sums with the bias to
     zero. this way we can achieve an average activity in the BM of
-    mu_target. for details see, e.g., Helias et al. (2014), PloS CB,
+    mean_activity. for details see, e.g., Helias et al. (2014), PloS CB,
     eq. (5)
 
     """
-    return np.ones(N) * -1. * muJ * N * mu_target
+    return np.ones(N) * -1. * mean_weight * N * mean_activity
 
 
 def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
@@ -150,15 +150,15 @@ def create_BRN_weight_matrix_fixed_indegree(N, w, g, K, gamma):
     return W
 
 
-def create_BRN_biases_threshold_condition(N, w, g, epsilon, gamma, mu_target):
+def create_BRN_biases_threshold_condition(N, w, g, epsilon, gamma, mean_activity):
     """(see create_BM_biases_threshold_condition)"""
-    return np.ones(N) * -1. * get_mu_input(epsilon, N, gamma, g, w, mu_target) - w / 2.
+    return np.ones(N) * -1. * get_mu_input(epsilon, N, gamma, g, w, mean_activity) - w / 2.
 
 
-def create_stoch_biases_from_target_activity(N, mu_target):
+def create_stoch_biases_from_target_activity(N, mean_activity):
     """create biases for sigmoidal units from a target activity by using
     the inverse of the sigmoid"""
-    return np.ones(N) * sigmainv(mu_target)
+    return np.ones(N) * sigmainv(mean_activity)
 
 
 def create_noise_weight_matrix(Nbm, Nnoise, gamma, g, w, epsilon):
