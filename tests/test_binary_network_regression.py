@@ -22,7 +22,7 @@ class HelperRegressionTestCase(unittest.TestCase):
         # p(0,0) = 0.5 + 0.2 = 0.7
         expected_joints = np.array([[0.7, 0., 0., 0.3],
                                     [0.5, 0., 0., 0.5]])
-        joints = bhlp.get_joints(a_s, 0., M)
+        joints = bhlp.get_joints_multi_bm(a_s, 0., M)
         for i in range(M):
             nptest.assert_array_almost_equal(expected_joints[i], joints[i])
         expected_marginals = np.array([[0.3, 0.3],

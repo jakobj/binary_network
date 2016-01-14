@@ -129,11 +129,11 @@ class HelperTestCase(unittest.TestCase):
         self.assertEqual(0., np.sum(W - W.T))
 
         # test with beta distribution and target mean
-        mu_weight = -1.45
+        mean_weight = -1.45
         W = bhlp.create_BM_weight_matrix(
-            N, np.random.beta, mu_weight=mu_weight, a=2., b=2.)
+            N, np.random.beta, mean_weight=mean_weight, a=2., b=2.)
         weights = [W[i, j] for i in xrange(N) for j in xrange(N) if i != j]
-        self.assertAlmostEqual(mu_weight, np.mean(weights), delta=0.01)
+        self.assertAlmostEqual(mean_weight, np.mean(weights), delta=0.01)
         self.assertEqual((N, N), np.shape(W))
         nptest.assert_array_equal(expected_diag, W.diagonal())
         self.assertEqual(0., np.sum(W - W.T))
@@ -381,7 +381,7 @@ class HelperTestCase(unittest.TestCase):
         N = 3
         a_s = np.random.randint(0, 2, M * N * steps).reshape(steps, M * N)
         a_s[:steps_warmup, :] = 0
-        joints = bhlp.get_joints(a_s, steps_warmup, M)
+        joints = bhlp.get_joints_multi_bm(a_s, steps_warmup, M)
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
@@ -405,7 +405,7 @@ class HelperTestCase(unittest.TestCase):
         a_s[:, 0] = np.random.randint(0, N * M, steps)
         a_s[:, 1] = np.random.randint(0, 2, steps)
         a_s[:steps_warmup] = (0, 0)
-        joints = bhlp.get_joints_sparse_multi_bm(sinit, a_s, M, steps_warmup)
+        joints = bhlp.get_joints_sparse_multi_bm(sinit, a_s, steps_warmup, M)
         expected_sum = np.ones(M)
         nptest.assert_array_almost_equal(expected_sum, np.sum(joints, axis=1))
         for i in range(M):

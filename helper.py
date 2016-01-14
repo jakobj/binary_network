@@ -67,7 +67,7 @@ def shared_input_distribution(K, N, s):
     return scipy.stats.binom.pmf(s, K, 1. * K / N, 0)
 
 
-def create_BM_weight_matrix(N, distribution, mu_weight=None, **kwargs):
+def create_BM_weight_matrix(N, distribution, mean_weight=None, **kwargs):
     """creates a random weight matrix for a Boltzmann machine (diagonal=0,
     and symmetric weights), with weights drawn from
     distribution. parameters for the distribution need to be passed as
@@ -80,8 +80,8 @@ def create_BM_weight_matrix(N, distribution, mu_weight=None, **kwargs):
         for j in xrange(i):
             W[j, i] = W[i, j]
     W -= np.diag(W.diagonal())
-    if mu_weight is not None:
-        W += mu_weight - 1. / (N * (N - 1)) * np.sum(W)
+    if mean_weight is not None:
+        W += mean_weight - 1. / (N * (N - 1)) * np.sum(W)
         W -= np.diag(W.diagonal())
     return W
 
@@ -416,33 +416,36 @@ def get_steps_warmup(rNrec, Twarmup, tau):
     return int(np.ceil(1. * Nrec * Twarmup / tau))
 
 
-def get_joints(a_s, steps_warmup, M=1, prior=None):
+def get_joints(a_s, steps_warmup, prior=None):
     """create joint distribution of network states from recorded state
     array. expected array representation of network state."""
     steps_tot = len(a_s[steps_warmup:])
+    N = len(a_s[0])
+    possible_states = get_states(N)
+    state_counter = {}
+    if prior is None:
+        for s in possible_states:
+            state_counter[tuple(s)] = 0.
+    elif prior == 'uniform':
+        for s in possible_states:
+            state_counter[tuple(s)] = 1.
+        steps_tot += len(possible_states)
+    else:
+        raise NotImplementedError('Unknown prior.')
+    for s in a_s[steps_warmup:]:
+        state_counter[tuple(s)] += 1
+    hist = np.zeros(2 ** N)
+    for i, s in enumerate(possible_states):
+        hist[i] = state_counter[tuple(s)]
+    return 1. * hist / np.sum(hist)
+
+
+def get_joints_multi_bm(a_s, steps_warmup, M, prior=None):
     N = len(a_s[0, :]) / M
     a_joints = np.empty((M, 2 ** N))
-    possible_states = get_states(N)
-    states = {}
-    for i in range(M):
-        if prior is None:
-            for s in possible_states:
-                states[tuple(s)] = 0.
-        elif prior == 'uniform':
-            for s in possible_states:
-                states[tuple(s)] = 1.
-            steps_tot += len(possible_states)
-        else:
-            raise NotImplementedError('Unknown prior.')
-        for s in a_s[steps_warmup:, i * N:(i + 1) * N]:
-            states[tuple(s)] += 1
-        states_sorted = np.array([it[1] for it in sorted(states.items())])
-        a_joints[i, :] = 1. * states_sorted / steps_tot
-        assert((np.sum(a_joints[i, :]) - 1.) < 1e-12)
-    if M == 1:
-        return a_joints[0]
-    else:
-        return a_joints
+    for i in xrange(M):
+        a_joints[i] = get_joints(a_s[:, i * N:(i + 1) * N], steps_warmup, prior)
+    return a_joints
 
 
 def get_joints_sparse(s_init, a_s, steps_warmup, prior=None):
@@ -451,17 +454,16 @@ def get_joints_sparse(s_init, a_s, steps_warmup, prior=None):
     N = len(s_init)
     state_counter = {}
     possible_states = get_states(N)
-    for s in possible_states:
-        state_counter[tuple(s)] = 0
     if prior is None:
-        pass
+        for s in possible_states:
+            state_counter[tuple(s)] = 0
     elif prior == 'uniform':
         # assuming a uniform prior, i.e., each state is equally
         # likely. we add one count of each state to the state
         # counter. given no recorded data, this corresponds to a
         # uniform prior.
         for s in possible_states:
-            state_counter[tuple(s)] += 1
+            state_counter[tuple(s)] = 1
     else:
         raise NotImplementedError('Unknown prior.')
     current_state = s_init.copy()
@@ -475,9 +477,9 @@ def get_joints_sparse(s_init, a_s, steps_warmup, prior=None):
     return 1. * hist / np.sum(hist)
 
 
-def get_joints_sparse_multi_bm(s_init, a_s, M, steps_warmup, prior=None):
+def get_joints_sparse_multi_bm(s_init, a_s, steps_warmup, M, prior=None):
     a_s_full = get_all_states_from_sparse(s_init, a_s)
-    joints = get_joints(a_s_full, steps_warmup, M=M, prior=prior)
+    joints = get_joints_multi_bm(a_s_full, steps_warmup, M, prior=prior)
     return joints
 
 
