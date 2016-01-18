@@ -62,18 +62,24 @@ class HelperRegressionTestCase(unittest.TestCase):
                       [0.1, 0.5, 0.3, 0.1]])
         self.assertRaises(AssertionError, bhlp.get_DKL_multi_bm, p, q, M)
 
-    def test_initial_state(self):
-        N = 5
-        W = bhlp.create_BM_weight_matrix(N, np.random.uniform, low=-1., high=1.)
-        b = bhlp.create_BM_biases(N, np.random.uniform, low=-1., high=1.)
-        beta = 0.8
-        sinit = bhlp.random_initial_condition(N)
-        rNrec = [1, 3]
-        Tmax = 5e4
+    def test_number_of_recorded_units(self):
+        N = 100
+        mean_weight = -0.1
+        mean_activity = 0.3
         tau = 10.
-        sinit_sim, a_times, a_s = bnet.simulate_eve_sparse(
-            W, b, tau, sinit, Tmax, rNrec, [N], [bhlp.Fsigma], beta=beta)
-        nptest.assert_array_equal(np.arange(rNrec[0], rNrec[1]), np.unique(a_s[:, 0]))
-        nptest.assert_array_equal(sinit[rNrec[0]:rNrec[1]], sinit_sim)
-        self.assertEqual(len(sinit), N)
-        self.assertEqual(len(sinit_sim), rNrec[1] - rNrec[0])
+        rNrec = [0, 42]
+        rNrec_u = [0, 40]
+        Tmax = 1e3
+        beta = 0.7
+
+        W = bhlp.create_BM_weight_matrix(N, np.random.beta, mean_weight, a=2., b=2.)
+        b = bhlp.create_BM_biases_threshold_condition(N, mean_weight, mean_activity)
+        sinit = bhlp.random_initial_condition(N)
+
+        # test spike recording
+        a_times, a_s, a_times_u, a_u = bnet.simulate_eve_sparse(W, b, tau, sinit, Tmax,
+                                                                rNrec, [N], [bhlp.Fsigma],
+                                                                beta, rNrec_u)
+        Nrec_u = rNrec_u[1] - rNrec_u[0]
+        self.assertEqual(len(a_u[0]), Nrec_u)
+        self.assertLess(len(a_u), Nrec_u * Tmax / tau)

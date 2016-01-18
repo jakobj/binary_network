@@ -34,7 +34,7 @@ def simulate(W, b, s_init, steps, rNrec, l_N, l_F, beta=1., rNrec_u=[0, 0]):
     # set up recording arrays for membrane potential
     mean_recsteps_u = Nrec_u * steps / N
     max_recsteps_u = int(np.ceil(mean_recsteps_u + 3 * np.sqrt(mean_recsteps_u)))  # Poisson process, mean + 3 * std
-    a_u = np.empty((max_recsteps_u, Nrec_u), dtype=int)
+    a_u = np.empty((max_recsteps_u, Nrec_u))
     a_steps_u = np.zeros(max_recsteps_u)
     recstep_u = 0
 
@@ -49,7 +49,7 @@ def simulate(W, b, s_init, steps, rNrec, l_N, l_F, beta=1., rNrec_u=[0, 0]):
         F_lut[idx] = idF
         if idx >= rNrec[0] and idx < rNrec[1]:
             rec_s_lut[idx] = True
-        if idx >= rNrec_u[0] and idx < rNrec[1]:
+        if idx >= rNrec_u[0] and idx < rNrec_u[1]:
             rec_u_lut[idx] = True
 
     # simulation loop
@@ -106,7 +106,7 @@ def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1., rNrec
     # set up recording arrays for membrane potential
     mean_recsteps_u = Nrec_u * Tmax / tau
     max_recsteps_u = int(np.ceil(mean_recsteps_u + 3 * np.sqrt(mean_recsteps_u)))  # Poisson process, mean + 3 * std
-    a_u = np.empty((max_recsteps_u, Nrec_u), dtype=int)
+    a_u = np.empty((max_recsteps_u, Nrec_u))
     a_times_u = np.zeros(max_recsteps_u)
     recstep_u = 0
 
@@ -121,7 +121,7 @@ def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1., rNrec
         F_lut[idx] = idF
         if idx >= rNrec[0] and idx < rNrec[1]:
             rec_s_lut[idx] = True
-        if idx >= rNrec_u[0] and idx < rNrec[1]:
+        if idx >= rNrec_u[0] and idx < rNrec_u[1]:
             rec_u_lut[idx] = True
 
     # choose initial update times
