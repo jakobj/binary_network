@@ -125,17 +125,17 @@ class MeanfieldTestCase(unittest.TestCase):
             bhlp.get_mu_input(epsilon, Nnoise, gamma, g, w, mu_target) - w / 2.
         sinit = bhlp.random_initial_condition(N + Nnoise)
 
-        sinit, times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
-            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.Ftheta], rNrec_u=[0, N + Nrec])
-        a_s = bhlp.get_all_states_from_sparse(sinit, a_s)
+        times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
+            W, b, tau, sinit, T, [0, N + Nrec], [N + Nnoise], [bhlp.Ftheta], rNrec_u=[0, N])
+        a_s = bhlp.get_all_states_from_sparse(N + Nrec, a_s)
         a_ui = a_ui[200:]
         a_s = a_s[200:]
 
         # empirical
         mu_noise_activity = np.mean(a_s[:, N:])
         std_noise_activity = np.mean(np.std(a_s[:, N:], axis=0))
-        mu_noise = np.mean(a_ui[:, :N])
-        std_noise = np.mean(np.std(a_ui[:, :N], axis=0))
+        mu_noise = np.mean(a_ui)
+        std_noise = np.mean(np.std(a_ui, axis=0))
 
         # meanfield
         mfcl = bmf.BinaryMeanfield(

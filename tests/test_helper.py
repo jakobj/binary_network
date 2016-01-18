@@ -390,38 +390,36 @@ class HelperTestCase(unittest.TestCase):
         N = 5
         steps = 5e4
         steps_warmup = 1e3
-        sinit = bhlp.random_initial_condition(N)
-        a_s = np.empty((steps, 2))
-        a_s[:, 0] = np.random.randint(0, N, steps)
-        a_s[:, 1] = np.random.randint(0, 2, steps)
-        a_s[:steps_warmup] = (0, 0)
+        a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
+        a_s[:steps_warmup, :] = 0
+        a_s = np.packbits(a_s, axis=1)
         expected_joints = np.ones(2 ** N) * 1. / (2 ** N)
-        joints = bhlp.get_joints_sparse(sinit, a_s, steps_warmup)
+        joints = bhlp.get_joints_sparse(N, a_s, steps_warmup)
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
+
+        # test for multiple BMs
         M = 2
-        sinit = bhlp.random_initial_condition(N * M)
-        a_s = np.empty((steps, 2))
-        a_s[:, 0] = np.random.randint(0, N * M, steps)
-        a_s[:, 1] = np.random.randint(0, 2, steps)
-        a_s[:steps_warmup] = (0, 0)
-        joints = bhlp.get_joints_sparse_multi_bm(sinit, a_s, steps_warmup, M)
+        a_s = np.random.randint(0, 2, M * N * steps).reshape(steps, M * N)
+        a_s[:steps_warmup, :] = 0
+        a_s = np.packbits(a_s, axis=1)
+        joints = bhlp.get_joints_sparse_multi_bm(N, a_s, steps_warmup, M)
         expected_sum = np.ones(M)
         nptest.assert_array_almost_equal(expected_sum, np.sum(joints, axis=1))
         for i in range(M):
             nptest.assert_array_almost_equal(
                 expected_joints, joints[i], decimal=2)
-        sinit = bhlp.random_initial_condition(N)
-        a_s = np.empty((steps, 2))
-        a_s[:, 0] = np.random.randint(0, N, steps)
-        a_s[:, 1] = np.random.randint(0, 2, steps)
+
         # allow only those states where the last neuron is off.  this
         # make the joint distribution non-trivial, by setting the
         # probability of half of the states to zero.
-        a_s[a_s[:, 0] == 4, 1] = 0
+        a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
+        a_s[:, 4] = 0
+        a_s[:steps_warmup, :] = 0
+        a_s = np.packbits(a_s, axis=1)
         expected_joints = 2. * np.ones(2 ** N) * 1. / (2 ** N)
         expected_joints[1::2] = 0.
-        joints = bhlp.get_joints_sparse(sinit, a_s, steps_warmup)
+        joints = bhlp.get_joints_sparse(N, a_s, steps_warmup)
         nptest.assert_array_equal(np.zeros(2 ** N / 2), joints[1::2])
         self.assertAlmostEqual(1., np.sum(joints))
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)

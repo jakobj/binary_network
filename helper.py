@@ -448,39 +448,14 @@ def get_joints_multi_bm(a_s, steps_warmup, M, prior=None):
     return a_joints
 
 
-def get_joints_sparse(s_init, a_s, steps_warmup, prior=None):
+def get_joints_sparse(N, a_s, steps_warmup, prior=None):
     """create joint distribution of network states from recorded state
     array. expected sparse representation of network state."""
-    N = len(s_init)
-    state_counter = {}
-    possible_states = get_states(N)
-    if prior is None:
-        for s in possible_states:
-            state_counter[tuple(s)] = 0
-    elif prior == 'uniform':
-        # assuming a uniform prior, i.e., each state is equally
-        # likely. we add one count of each state to the state
-        # counter. given no recorded data, this corresponds to a
-        # uniform prior.
-        for s in possible_states:
-            state_counter[tuple(s)] = 1
-    else:
-        raise NotImplementedError('Unknown prior.')
-    current_state = s_init.copy()
-    for step, (idx, sidx) in enumerate(a_s):
-        current_state[idx] = sidx
-        if step >= steps_warmup:
-            state_counter[tuple(current_state)] += 1
-    hist = np.zeros(2 ** N)
-    for i, s in enumerate(possible_states):
-        hist[i] = state_counter[tuple(s)]
-    return 1. * hist / np.sum(hist)
+    return get_joints(np.unpackbits(a_s, axis=1)[:, :N], steps_warmup, prior)
 
 
-def get_joints_sparse_multi_bm(s_init, a_s, steps_warmup, M, prior=None):
-    a_s_full = get_all_states_from_sparse(s_init, a_s)
-    joints = get_joints_multi_bm(a_s_full, steps_warmup, M, prior=prior)
-    return joints
+def get_joints_sparse_multi_bm(N, a_s, steps_warmup, M, prior=None):
+    return get_joints_multi_bm(np.unpackbits(a_s, axis=1)[:, :N * M], steps_warmup, M, prior)
 
 
 def get_marginals(a_s, steps_warmup):
@@ -500,16 +475,10 @@ def get_marginals_multi_bm(a_s, steps_warmup, M):
         return a_marginals
 
 
-def get_all_states_from_sparse(s_init, a_s):
+def get_all_states_from_sparse(N, a_s):
     """create array representation of list of network states from sparse
     representation."""
-    N = len(s_init)
-    current_state = s_init.copy()
-    a_s_full = np.empty((len(a_s), N))
-    for step, (idx, sidx) in enumerate(a_s):
-        current_state[idx] = sidx
-        a_s_full[step] = current_state
-    return a_s_full
+    return np.unpackbits(a_s, axis=1)[:, :N]
 
 
 def get_euclidean_distance(x, y):

@@ -26,9 +26,10 @@ class NetworkTestCase(unittest.TestCase):
                 a_s = sim(W, b, sinit, steps, rNrec, [N], [hlp.Fsigma],
                           beta=beta)[1]
             else:
-                sinit, a_times, a_s = sim(W, b, tau, sinit, steps * tau / N,
-                                          rNrec, [N], [hlp.Fsigma], beta=beta)
-                a_s = hlp.get_all_states_from_sparse(sinit, a_s)
+                a_s = sim(W, b, tau, sinit, steps * tau / N,
+                          rNrec, [N], [hlp.Fsigma], beta=beta)[1]
+                Nrec = rNrec[1] - rNrec[0]
+                a_s = hlp.get_all_states_from_sparse(Nrec, a_s)
             mean = np.mean(a_s)
             variance = np.var(a_s)
             self.assertAlmostEqual(expected_mean, mean, places=1)
@@ -55,10 +56,11 @@ class NetworkTestCase(unittest.TestCase):
                 a_s = sim(W, b, sinit, steps, rNrec, [N1, N],
                           [hlp.Fsigma, F2], beta)[1]
             elif i == 1:
-                sinit, a_times, a_s = sim(W, b, tau, sinit, steps * tau / N,
-                                          rNrec, [N1, N], [hlp.Fsigma, F2],
-                                          beta=beta)
-                a_s = hlp.get_all_states_from_sparse(sinit, a_s)
+                a_s = sim(W, b, tau, sinit, steps * tau / N,
+                          rNrec, [N1, N], [hlp.Fsigma, F2],
+                          beta=beta)[1]
+                Nrec = rNrec[1] - rNrec[0]
+                a_s = hlp.get_all_states_from_sparse(Nrec, a_s)
             a_means = hlp.get_marginals(a_s, steps_warmup)
             Nrec = rNrec[1] - rNrec[0]
             expected_means = np.ones(Nrec) * 1. / (1. + np.exp(-b[0]))
@@ -85,8 +87,9 @@ class NetworkTestCase(unittest.TestCase):
             expected_joints, joints, decimal=2)
 
         # event-driven simulation
-        sinit, a_states, a_s = bnet.simulate_eve_sparse(W, b, tau, sinit, steps * tau / N, rNrec, [N], [hlp.Fsigma], beta=beta)
-        joints = hlp.get_joints_sparse(sinit, a_s, steps_warmup)
+        a_states, a_s = bnet.simulate_eve_sparse(W, b, tau, sinit, steps * tau / N, rNrec, [N], [hlp.Fsigma], beta=beta)
+        Nrec = rNrec[1] - rNrec[0]
+        joints = hlp.get_joints_sparse(Nrec, a_s, steps_warmup)
         nptest.assert_array_almost_equal(
             expected_joints, joints, decimal=2)
 
@@ -99,11 +102,12 @@ class NetworkTestCase(unittest.TestCase):
         Tmax = 3e5
         tau = 10.
         rNrec = [0, 2]
-        sinit, a_times, a_s = bnet.simulate_eve_sparse(
+        a_times, a_s = bnet.simulate_eve_sparse(
             W, b, tau, sinit, Tmax, rNrec, [N], [hlp.Fsigma], beta=beta)
         self.assertGreater(np.min(a_times), 0.)
         self.assertEqual(len(a_times), len(a_s))
-        joints = hlp.get_joints_sparse(sinit, a_s, 0)
+        Nrec = rNrec[1] - rNrec[0]
+        joints = hlp.get_joints_sparse(Nrec, a_s, 0)
         expected_joints = hlp.get_theo_joints(W, b, beta)
         nptest.assert_array_almost_equal(expected_joints, joints, decimal=2)
 
@@ -125,9 +129,10 @@ class NetworkTestCase(unittest.TestCase):
         nptest.assert_array_almost_equal(
             expected_marginals, marginals, decimal=2)
 
-        sinit, a_times, a_s = bnet.simulate_eve_sparse(W, b, tau, sinit, steps * tau / N, rNrec,
-                                                       [N], [hlp.Fsigma], beta=beta)
-        a_s_full = hlp.get_all_states_from_sparse(sinit, a_s)
+        a_times, a_s = bnet.simulate_eve_sparse(W, b, tau, sinit, steps * tau / N, rNrec,
+                                                [N], [hlp.Fsigma], beta=beta)
+        Nrec = rNrec[1] - rNrec[0]
+        a_s_full = hlp.get_all_states_from_sparse(Nrec, a_s)
         marginals = hlp.get_marginals(a_s_full, steps_warmup)
         nptest.assert_array_almost_equal(
             expected_marginals, marginals, decimal=2)
@@ -286,7 +291,7 @@ class NetworkTestCase(unittest.TestCase):
                         0.05 * expected_std_input)
 
         time = steps / (N + Nnoise) * tau
-        sinit, a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
+        a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
             W, b, tau, sinit.copy(), time, rNrec, [N, N + Nnoise], [hlp.Ftheta, hlp.Fsigma], beta, rNrec_u=rNrec_u)
         a_ui = a_ui[steps_warmup:]
         self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
