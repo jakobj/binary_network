@@ -80,6 +80,8 @@ class HelperRegressionTestCase(unittest.TestCase):
         a_times, a_s, a_times_u, a_u = bnet.simulate_eve_sparse(W, b, tau, sinit, Tmax,
                                                                 rNrec, [N], [bhlp.Fsigma],
                                                                 beta, rNrec_u)
+        Nrec = rNrec[1] - rNrec[0]
+        self.assertLess(len(a_s[0]) - np.ceil(Nrec / 8.), 1e-10)
         Nrec_u = rNrec_u[1] - rNrec_u[0]
         self.assertEqual(len(a_u[0]), Nrec_u)
         self.assertLess(len(a_u), Nrec_u * Tmax / tau)
