@@ -672,3 +672,11 @@ def get_transition_count(a_s, average=False):
     if average:
         counts *= 1. / N
     return counts
+
+
+def entropy(p):
+    """calculate the entropy of the distribution."""
+    assert(np.sum(p) - 1. < 1e-12), 'Distribution must be normalized.'
+    assert(np.all(p > 0.)), 'Invalid values in distribution.'
+
+    return np.sum(p * np.log(p))
