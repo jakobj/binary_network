@@ -679,4 +679,4 @@ def entropy(p):
     assert(np.sum(p) - 1. < 1e-12), 'Distribution must be normalized.'
     assert(np.all(p > 0.)), 'Invalid values in distribution.'
 
-    return np.sum(p * np.log(p))
+    return -1. * np.sum(p * np.log(p))
