@@ -579,3 +579,20 @@ class HelperTestCase(unittest.TestCase):
         times_bin, st = bhlp.bin_binary_data(times, a_s, tbin, 0., time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
+
+    def test_erfc_noise(self):
+        a_x = np.arange(-.5, .5, 0.05)
+        y0 = [bhlp.sigma(x) for x in a_x]
+        y1 = [bhlp.erfc_noise(x) for x in a_x]
+        nptest.assert_array_almost_equal(y0, y1, decimal=3)
+
+    def test_Ferfc_noise(self):
+        expected_y0 = bhlp.erfc_noise(-.5)
+        y0 = np.mean([bhlp.Ferfc_noise(-.5) for _ in xrange(10000)])
+        self.assertAlmostEqual(expected_y0, y0, delta=0.01)
+        expected_y1 = bhlp.erfc_noise(0.)
+        y1 = np.mean([bhlp.Ferfc_noise(0.) for _ in xrange(10000)])
+        self.assertAlmostEqual(expected_y1, y1, delta=0.01)
+        expected_y2 = bhlp.erfc_noise(.8)
+        y2 = np.mean([bhlp.Ferfc_noise(.8) for _ in xrange(10000)])
+        self.assertAlmostEqual(expected_y2, y2, delta=0.01)
