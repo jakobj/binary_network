@@ -579,3 +579,12 @@ class HelperTestCase(unittest.TestCase):
         times_bin, st = bhlp.bin_binary_data(times, a_s, tbin, 0., time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
+
+    def test_entropy(self):
+        trials = 50
+        N = 6
+        p = np.ones(N) * 1. / N
+        for _ in xrange(trials):
+            q = np.random.uniform(N)
+            q /= np.sum(q)
+            self.assertLess(bhlp.entropy(q), bhlp.entropy(p))
