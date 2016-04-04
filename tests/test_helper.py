@@ -104,7 +104,7 @@ class HelperTestCase(unittest.TestCase):
             theo_hist_shared, hist_shared, decimal=2)
 
     def test_create_BM_weight_matrix(self):
-        N = 200
+        N = 300
         expected_diag = np.zeros(N)
 
         # test with uniform distribution

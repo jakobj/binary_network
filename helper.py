@@ -115,7 +115,8 @@ def create_BM_biases_threshold_condition(N, mean_weight, mean_activity):
     eq. (5)
 
     """
-    return np.ones(N) * -1. * mean_weight * N * mean_activity
+    # for a Boltzmann machine with N units, we have (N - 1) inputs
+    return np.ones(N) * -1. * mean_weight * (N - 1) * mean_activity
 
 
 def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
@@ -407,7 +408,7 @@ def get_beta_from_sigma_input(sigma_input):
     functions at zero
 
     """
-    return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
+    return np.sqrt(8. / (np.pi * sigma_input ** 2))
 
 
 def get_steps_warmup(rNrec, Twarmup, tau):
