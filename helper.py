@@ -4,6 +4,7 @@ import itertools
 import scipy
 import scipy.special
 import scipy.stats
+from numba import jit
 
 
 def get_states(N):
@@ -524,7 +525,20 @@ def sigma(x, beta=1.):
 
 def Fsigma(x, beta=1.):
     """sigmoid activation function (Ginzburg)"""
-    return int(1. / (1. + np.exp(-beta * x)) > np.random.rand())
+
+    return int(sigma(x, beta) > np.random.rand())
+
+
+@jit
+def numba_sigma(x, beta):
+    return 1. / (1. + np.exp(-beta * x))
+
+
+@jit
+def numba_Fsigma(x, beta=1.):
+    """sigmoid activation function (Ginzburg)"""
+
+    return int(numba_sigma(x, beta) > np.random.rand())
 
 
 def erfc_noise(x, beta=1.):
