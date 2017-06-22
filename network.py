@@ -101,7 +101,7 @@ def simulate_eve_sparse(W, b, tau, s_init, Tmax, rNrec, l_N, l_F, beta=1., rNrec
     mean_recsteps = Nrec * Tmax / tau
     max_recsteps = int(np.ceil(mean_recsteps + 3 * np.sqrt(mean_recsteps)))  # Poisson process, mean + 3 * std
     # record states using  np.packbits, need to select the right size and data type
-    a_s = np.empty((max_recsteps, np.ceil(Nrec / 8.)), dtype=np.uint8)
+    a_s = np.empty((max_recsteps, int(np.ceil(Nrec / 8.))), dtype=np.uint8)
     a_times = np.zeros(max_recsteps)
     recstep = 0
     # set up recording arrays for membrane potential
