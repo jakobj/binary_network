@@ -407,7 +407,7 @@ def get_sigma_input_from_beta_int(beta):
     """return standard deviation of input given inverse temperature beta,
     by requiring matching of Taylor expansion of integral of
     activation functions"""
-    return np.log(2.) * np.sqrt(2) * np.sqrt(np.pi) / beta
+    return np.log(2.) * np.sqrt(2. * np.pi) / beta
 
 
 def get_beta_from_sigma_input(sigma_input):
@@ -417,6 +417,15 @@ def get_beta_from_sigma_input(sigma_input):
 
     """
     return np.sqrt(8. / (np.pi * sigma_input ** 2))
+
+
+def get_beta_from_sigma_input_int(sigma_input):
+    """returns inverse temperature beta from standard deviation of
+    input, by requiring matching of erfc and sigmoidal activation
+    functions at zero
+
+    """
+    return np.log(2.) * np.sqrt(2. * np.pi) / sigma_input
 
 
 def get_steps_warmup(rNrec, Twarmup, tau):
