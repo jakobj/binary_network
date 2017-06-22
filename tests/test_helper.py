@@ -104,7 +104,7 @@ class HelperTestCase(unittest.TestCase):
             theo_hist_shared, hist_shared, decimal=2)
 
     def test_create_BM_weight_matrix(self):
-        N = 200
+        N = 300
         expected_diag = np.zeros(N)
 
         # test with uniform distribution
@@ -579,6 +579,15 @@ class HelperTestCase(unittest.TestCase):
         times_bin, st = bhlp.bin_binary_data(times, a_s, tbin, 0., time)
         nptest.assert_array_equal(expected_times, times_bin)
         nptest.assert_array_equal(expected_bin, st)
+
+    def test_entropy(self):
+        trials = 50
+        N = 6
+        p = np.ones(N) * 1. / N
+        for _ in xrange(trials):
+            q = np.random.uniform(N)
+            q /= np.sum(q)
+            self.assertLess(bhlp.entropy(q), bhlp.entropy(p))
 
     def test_erfc_noise(self):
         a_x = np.arange(-.5, .5, 0.05)

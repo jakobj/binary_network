@@ -4,6 +4,7 @@ import itertools
 import scipy
 import scipy.special
 import scipy.stats
+from numba import jit
 
 
 def get_states(N):
@@ -115,7 +116,8 @@ def create_BM_biases_threshold_condition(N, mean_weight, mean_activity):
     eq. (5)
 
     """
-    return np.ones(N) * -1. * mean_weight * N * mean_activity
+    # for a Boltzmann machine with N units, we have (N - 1) inputs
+    return np.ones(N) * -1. * mean_weight * (N - 1) * mean_activity
 
 
 def create_BRN_weight_matrix(N, w, g, epsilon, gamma):
@@ -414,7 +416,7 @@ def get_beta_from_sigma_input(sigma_input):
     functions at zero
 
     """
-    return 4. / np.sqrt(2. * np.pi * sigma_input ** 2)
+    return np.sqrt(8. / (np.pi * sigma_input ** 2))
 
 
 def get_steps_warmup(rNrec, Twarmup, tau):
@@ -530,7 +532,20 @@ def sigma(x, beta=1.):
 
 def Fsigma(x, beta=1.):
     """sigmoid activation function (Ginzburg)"""
-    return int(1. / (1. + np.exp(-beta * x)) > np.random.rand())
+
+    return int(sigma(x, beta) > np.random.rand())
+
+
+@jit
+def numba_sigma(x, beta):
+    return 1. / (1. + np.exp(-beta * x))
+
+
+@jit
+def numba_Fsigma(x, beta=1.):
+    """sigmoid activation function (Ginzburg)"""
+
+    return int(numba_sigma(x, beta) > np.random.rand())
 
 
 def erfc_noise(x, beta=1.):
