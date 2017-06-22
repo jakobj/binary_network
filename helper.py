@@ -536,6 +536,17 @@ def Fsigma(x, beta=1.):
     return int(sigma(x, beta) > np.random.rand())
 
 
+def erfc_noise(x, beta=1.):
+    return 0.5 * scipy.special.erfc(-np.sqrt(np.pi) * beta / 4. * x)
+
+
+def erfc_noise_int(x, beta=1.):
+    return 0.5 * scipy.special.erfc(-beta / (2. * np.log(2) * np.sqrt(np.pi)) * x)
+
+
+def erfc_noise_sigma(x, sigma):
+    return 0.5 * scipy.special.erfc(-1. * x / (np.sqrt(2.) * sigma))
+
 @jit
 def numba_sigma(x, beta):
     return 1. / (1. + np.exp(-beta * x))
@@ -548,14 +559,16 @@ def numba_Fsigma(x, beta=1.):
     return int(numba_sigma(x, beta) > np.random.rand())
 
 
-def erfc_noise(x, beta=1.):
-    return 0.5 * scipy.special.erfc(-np.sqrt(np.pi) * beta / 4. * x)
-
-
 def Ferfc_noise(x, beta=1.):
     """activation function from complementary error function for
     stochastic binary neurons (McCulloch-Pitts + white noise)"""
-    return int(0.5 * scipy.special.erfc(-np.sqrt(np.pi) * beta / 4. * x) > np.random.rand())
+    return int(erfc_noise(x, beta) > np.random.rand())
+
+
+def Ferfc_noise_int(x, beta=1.):
+    """activation function from complementary error function for
+    stochastic binary neurons (McCulloch-Pitts + white noise)"""
+    return int(erfc_noise_int(x, beta) > np.random.rand())
 
 
 def sigmainv(y, beta=1.):
