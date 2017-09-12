@@ -4,6 +4,7 @@ import itertools
 import scipy
 import scipy.special
 import scipy.stats
+import collections
 from numba import jit
 
 
@@ -313,6 +314,28 @@ def get_theo_joints(W, b, beta):
     return joints
 
 
+def get_theo_joints_pm(W, b, beta):
+    """calculate the theoretical state distribution for a Boltzmann
+    machine
+
+    """
+    N = len(b)
+    joints = []
+    states = get_states(N)
+    for s in states:
+        joints.append(np.exp(-1. * get_energy(W, b, (2. * s - 1.), beta)))
+    joints /= np.sum(joints)
+    return joints
+
+
+def get_Z(W, b, beta):
+    return np.sum([np.exp(-get_energy(W, b, s, beta)) for s in get_states(len(b))])
+
+
+def get_entropy(W, b, beta):
+    return entropy(get_theo_joints(W, b, beta))
+
+
 def get_theo_joints_multi_bm(W, b, beta, M):
     N = len(b) / M
     joints = []
@@ -324,7 +347,7 @@ def get_theo_joints_multi_bm(W, b, beta, M):
         return joints
 
 
-def get_conditionals_from_joints(N, joints, rvs, vals):
+def get_conditionals_from_joints(joints, rvs, vals):
     """calculate a conditional distribution
     N: number of random variables
     joints: joint distribution
@@ -332,6 +355,7 @@ def get_conditionals_from_joints(N, joints, rvs, vals):
     vals: states of conditioned random variables
 
     """
+    N = int(np.log2(len(joints)))
     states = get_states(N)
     states_cond = []
     cond = []
@@ -341,6 +365,27 @@ def get_conditionals_from_joints(N, joints, rvs, vals):
             cond.append(joints[i])
     cond = np.array(cond) / np.sum(cond)
     return states_cond, cond
+
+
+def get_marginal_dist_from_joints(joints, rvs):
+    """calculate the marginal distribution over rvs
+    N: total number of rvs
+    joints: joint distribution
+    rvs: which rvs to calculate marginal form
+    """
+    N = int(np.log2(len(joints)))
+    joints_states = get_states(N)
+    marginal_states = joints_states[:, rvs]
+    marginals_dict = collections.defaultdict(float)
+    for i, s in enumerate(marginal_states):
+        marginals_dict[tuple(s)] += joints[i]
+    marginals = []
+    marginals_states = []
+    for s in sorted(marginals_dict.keys()):
+        marginals_states.append(s)
+        marginals.append(marginals_dict[s])
+    assert(np.sum(marginals) - 1. < 1e-12), 'Marginal distribution not normalized.'
+    return marginals_states, np.array(marginals)
 
 
 def get_marginals_from_joints(N, joints, rvs):
@@ -370,14 +415,31 @@ def get_theo_rates_and_covariances(W, b, beta):
     connectivity and biases"""
     N = len(b)
     joints = get_theo_joints(W, b, beta)
+    return get_theo_rates_and_covariances_from_joints(N, joints)
+
+
+def get_theo_rates_and_covariances_from_joints(N, joints):
     states = get_states(N)
-    rvs, m = get_theo_marginals(W, b, beta)
+    rvs, m = get_marginals_from_joints(N, joints, np.arange(0, N))
     cov = np.zeros((N, N))
     for i in range(N):
         for j in range(N):
             cov[i, j] = np.sum(joints[np.logical_and(
                 states[:, i] == 1, states[:, j] == 1)]) - m[i] * m[j]
     return m, cov
+
+
+def get_joints_sparse(N, a_s, steps_warmup, prior=None):
+    """create joint distribution of network states from recorded state
+    array. expected sparse representation of network state."""
+    return get_joints(np.unpackbits(a_s, axis=1)[:, :N], steps_warmup, prior)
+
+
+def get_rates_and_covariances(N, a_s, steps_warmup):
+    a_s_full = get_all_states_from_sparse(N, a_s)
+    rates = np.mean(a_s_full, axis=0)
+    cov = np.cov(a_s_full.T)
+    return rates, cov
 
 
 def get_sigma2(mu):
@@ -494,6 +556,8 @@ def get_DKL(p, q):
     """
     assert(np.sum(p) - 1. < 1e-12), 'Distributions must be normalized.'
     assert(np.sum(q) - 1. < 1e-12), 'Distributions must be normalized.'
+    if not np.all(p > 0.) or not np.all(q > 0.):
+        print(p, q)
     assert(np.all(p > 0.)), 'Invalid values in distribution.'
     assert(np.all(q > 0.)), 'Invalid values in distribution.'
 
@@ -539,6 +603,10 @@ def numba_Fsigma(x, beta=1.):
     """sigmoid activation function (Ginzburg)"""
 
     return int(numba_sigma(x, beta) > np.random.rand())
+
+
+def erfc_noise_sigma(mu, sigma):
+    return 0.5 * scipy.special.erfc(-mu / (np.sqrt(2) * sigma))
 
 
 def erfc_noise(x, beta=1.):
@@ -698,4 +766,13 @@ def entropy(p):
     assert(np.sum(p) - 1. < 1e-12), 'Distribution must be normalized.'
     assert(np.all(p > 0.)), 'Invalid values in distribution.'
 
-    return -1. * np.sum(p * np.log(p))
+    return -1. * np.dot(p, np.log(p))
+
+
+def max_entropy(N):
+    """calculate the maximal possible entropy for a distribution over N binary RVs."""
+    return -np.log(1. / 2 ** N)
+
+
+def subsample_joints_to_conditionals(joints, units, states):
+    pass
