@@ -45,7 +45,7 @@ class NetworkTestCase(unittest.TestCase):
         tau = 10.
         rNrec = [0, 20]
         steps = int(8e4)
-        steps_warmup = 1e4
+        steps_warmup = int(1e4)
         beta = 0.7
 
         def F2(x, beta):
@@ -57,7 +57,7 @@ class NetworkTestCase(unittest.TestCase):
                           [hlp.Fsigma, F2], beta)[1]
             elif i == 1:
                 a_s = sim(W, b, tau, sinit, steps * tau / N,
-                          rNrec, [N1, N], [hlp.Fsigma, F2],
+                          rNrec, [N1, N - N1], [hlp.Fsigma, F2],
                           beta=beta)[1]
                 Nrec = rNrec[1] - rNrec[0]
                 a_s = hlp.get_all_states_from_sparse(Nrec, a_s)
@@ -74,7 +74,7 @@ class NetworkTestCase(unittest.TestCase):
         beta = 0.5
         sinit = hlp.random_initial_condition(N)
         steps = int(1e5)
-        steps_warmup = 2e4
+        steps_warmup = int(2e4)
         tau = 10.
         rNrec = [0, 2]
         expected_joints = hlp.get_theo_joints(W, b, beta)
@@ -118,7 +118,7 @@ class NetworkTestCase(unittest.TestCase):
         beta = 0.7
         sinit = np.random.randint(0, 2, N)
         steps = int(8e4)
-        steps_warmup = 1e4
+        steps_warmup = int(1e4)
         tau = 10.
         rNrec = [0, 2]
         rvs, expected_marginals = hlp.get_theo_marginals(W, b, beta)
@@ -261,7 +261,7 @@ class NetworkTestCase(unittest.TestCase):
         tau = 10.
         rNrec = [0, N]
         steps = int(2e4)
-        steps_warmup = 1e3
+        steps_warmup = int(1e3)
         mu_target = 0.46
         rNrec_u = [0, N]
 
@@ -292,7 +292,7 @@ class NetworkTestCase(unittest.TestCase):
 
         time = steps / (N + Nnoise) * tau
         a_times, a_s, a_times_ui, a_ui = bnet.simulate_eve_sparse(
-            W, b, tau, sinit.copy(), time, rNrec, [N, N + Nnoise], [hlp.Ftheta, hlp.Fsigma], beta, rNrec_u=rNrec_u)
+            W, b, tau, sinit.copy(), time, rNrec, [N, Nnoise], [hlp.Ftheta, hlp.Fsigma], beta, rNrec_u=rNrec_u)
         a_ui = a_ui[steps_warmup:]
         self.assertLess(abs(np.mean(a_ui) + w / 2. - expected_mu_input),
                         0.05 * abs(expected_mu_input))

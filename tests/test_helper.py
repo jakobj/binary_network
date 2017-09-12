@@ -230,8 +230,8 @@ class HelperTestCase(unittest.TestCase):
             W = bhlp.create_noise_weight_matrix_fixed_indegree(
                 M, Nnoise, gamma, g, w, Knoise)
             self.assertEqual(np.shape(W), (M, Nnoise))
-            self.assertTrue(np.all(W[:, :gamma * Nnoise] >= 0.))
-            self.assertTrue(np.all(W[:, gamma * Nnoise:] <= 0.))
+            self.assertTrue(np.all(W[:, :int(gamma * Nnoise)] >= 0.))
+            self.assertTrue(np.all(W[:, int(gamma * Nnoise):] <= 0.))
             self.assertAlmostEqual(len(np.where(W > 0.)[0]), gamma * Knoise * M)
             self.assertAlmostEqual(len(np.where(W < 0.)[0]), (1. - gamma) * Knoise * M)
             self.assertEqual(len(np.where(np.abs(W) > 0.)[0]), Knoise * M)
@@ -329,7 +329,7 @@ class HelperTestCase(unittest.TestCase):
         values = [0, 1]
         expected_states = np.array([[0, 0, 1], [1, 0, 1]])
         expected_cond = np.array([0.5, 0.5])
-        cond_states, cond = bhlp.get_conditionals_from_joints(N, joints, random_vars, values)
+        cond_states, cond = bhlp.get_conditionals_from_joints(joints, random_vars, values)
         nptest.assert_array_equal(expected_states, cond_states)
         nptest.assert_array_almost_equal(expected_cond, cond)
 
@@ -371,7 +371,7 @@ class HelperTestCase(unittest.TestCase):
     def test_get_joints(self):
         N = 3
         steps = int(1e5)
-        steps_warmup = 1e4
+        steps_warmup = int(1e4)
         a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
         a_s[:steps_warmup, :] = 0
         expected_joints = np.array([1. / (2 ** N)] * 2 ** N)
@@ -388,8 +388,8 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_joints_sparse(self):
         N = 5
-        steps = 5e4
-        steps_warmup = 1e3
+        steps = int(5e4)
+        steps_warmup = int(1e3)
         a_s = np.random.randint(0, 2, N * steps).reshape(steps, N)
         a_s[:steps_warmup, :] = 0
         a_s = np.packbits(a_s, axis=1)
@@ -426,7 +426,7 @@ class HelperTestCase(unittest.TestCase):
 
     def test_get_marginals(self):
         N = int(1e5)
-        steps_warmup = 1e4
+        steps_warmup = int(1e4)
         a_s = np.random.randint(0, 2, N).reshape(int(N / 2), 2)
         a_s[:steps_warmup, :] = [0., 0.]
         expected_marginals = [0.5, 0.5]
@@ -481,7 +481,7 @@ class HelperTestCase(unittest.TestCase):
         smu = 0.2
         steps = int(1e6)
         KE = int(gamma * K)
-        KI = K - KE
+        KI = int(K - KE)
         sigmas = bhlp.get_sigma(smu)
 
         # generate E and I input, and calculate statistics of combined
