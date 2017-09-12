@@ -807,5 +807,7 @@ def max_entropy(N):
     return -np.log(1. / 2 ** N)
 
 
-def subsample_joints_to_conditionals(joints, units, states):
-    pass
+def filter_full_samples_to_conditionals(a_s, units, states):
+    nonunits = np.array([k for k in range(len(a_s.T)) if k not in units])
+    cond = np.array([s for s in a_s if np.all(s[units] == states)])[:, nonunits]
+    return cond

@@ -605,3 +605,24 @@ class HelperTestCase(unittest.TestCase):
         expected_y2 = bhlp.erfc_noise(.8)
         y2 = np.mean([bhlp.Ferfc_noise(.8) for _ in xrange(10000)])
         self.assertAlmostEqual(expected_y2, y2, delta=0.01)
+
+    def test_filter_full_samples_to_conditionals(self):
+        s = np.array([[1, 0, 1, 0],
+                      [1, 0, 0, 1],
+                      [0, 1, 1, 0]]).T
+        c_expected = np.array([[1], [0]])
+        c = bhlp.filter_full_samples_to_conditionals(s, [1, 2], [1, 0])
+        assert(np.all(c == c_expected))
+
+        n = 5
+        units = np.arange(n)
+        all_states = bhlp.get_states(n)
+        for _ in range(5):
+            p = np.random.rand(2 ** n)
+            p *= 1. / np.sum(p)
+            units = np.random.permutation(units)[:3]
+            states = np.random.randint(0, 2, 3)
+            s, c_expected = bhlp.get_conditionals_from_joints(p, units, states)
+            c_samples = bhlp.filter_full_samples_to_conditionals(all_states[np.random.choice(2 ** n, p=p, size=100000)], units, states)
+            c = bhlp.get_joints(c_samples, 0)
+            assert(np.all(abs(c - c_expected) < 1e-2))
