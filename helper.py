@@ -609,6 +609,19 @@ def Fsigma(x, beta=1.):
     return int(sigma(x, beta) > np.random.rand())
 
 
+def Fdiscrete_factory(Nbm, Nnoise, gamma, g, w, Knoise, mu_target):
+
+    def Fdiscrete(x, beta=1.):
+        KEnoise = int(gamma * Knoise)
+        KInoise = int(Knoise - KEnoise)
+
+        enoise = w * np.random.binomial(KEnoise, mu_target)
+        inoise = -g * w * np.random.binomial(KInoise, mu_target)
+        return int(x + enoise + inoise >= 0.)
+
+    return Fdiscrete
+
+
 def erfc_noise(x, beta=1.):
     return 0.5 * scipy.special.erfc(-np.sqrt(np.pi) * beta / 4. * x)
 
